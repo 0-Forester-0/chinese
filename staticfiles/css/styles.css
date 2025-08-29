@@ -1,0 +1,83 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0;
+}
+
+.form-label {
+    font-weight: bold;
+}
+
+input[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.select2-container .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 38px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px;
+}
+
+.card-title.display-4 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+@media (max-width: 576px) {
+    .card-title.display-4 {
+        font-size: 2rem;
+    }
+}
+
+#game-area {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#card-character {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+#options button {
+    margin-bottom: 0.5rem;
+}
+
+.alert {
+    text-align: center;
+}
+
+#stats {
+    font-size: 1rem;
+    text-align: center;
+}
+
+#progressChart {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f9f9f9;
+}
