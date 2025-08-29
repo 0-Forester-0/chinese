@@ -4,7 +4,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = '+dl@y!c^(xy1*))*6t7n$)b*%$+&m!2k)q(u$gg!j#l*nbj$@-'
 DEBUG = True  # Для диагностики ошибок
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['chinese-xahw.onrender.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -79,4 +79,5 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600  # 2 недели
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False  # Для localhost
+
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
