@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="card-title display-4">Игра: Угадай перевод ({{ category }})</h1>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <a href="{% url 'home' %}" class="btn btn-secondary mb-3">Вернуться к карточкам</a>
+                <button id="finish-session" class="btn btn-danger mt-3">Завершить сессию</button>
+                <div id="game-area">
+                    <h2 id="card-character"></h2>
+                    <p>Пиньинь: <span id="card-pinyin"></span></p>
+                    <div id="options" class="d-grid gap-2"></div>
+                    <div id="feedback" class="alert" style="display: none;"></div>
+                    <button id="next-card" class="btn btn-primary mt-3" style="display: none;">Следующая карточка</button>
+                    <div id="stats" class="mt-3">
+                        Правильных ответов: <span id="correct-answers">{{ correct_answers }}</span>/<span id="total-cards">{{ total_cards_in_category }}</span><br>
+                        Процент: <span id="percentage">{{ percentage|floatformat:1 }}</span>%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cards = {{ cards_json|safe }};
+        let remainingCards = {{ remaining_cards|safe }};
+        const sessionId = "{{ session_id }}";
+        let currentCard = null;
+        let answerSelected = false;
+        let answerHistory = {};
+
+        console.log('Session ID:', sessionId);
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectRandomCard() {
+            if (remainingCards.length === 0) {
+                endGame();
+                return null;
+            }
+            const index = Math.floor(Math.random() * remainingCards.length);
+            const character = remainingCards[index];
+            remainingCards.splice(index, 1);
+            return cards.find(card => card.character === character);
+        }
+
+        function generateOptions(correctCard) {
+            const options = [correctCard.meaning];
+            const allMeanings = cards.map(card => card.meaning).filter(meaning => meaning !== correctCard.meaning);
+            const wrongOptions = shuffle(allMeanings).slice(0, 3);
+            return shuffle([...options, ...wrongOptions]);
+        }
+
+        function displayCard() {
+            currentCard = selectRandomCard();
+            if (!currentCard) {
+                document.getElementById('game-area').innerHTML = `
+                    <div class="alert alert-success">
+                        Поздравляем! Вы завершили игру для категории {{ category }}!
+                        <br>
+                        <a href="{% url 'home' %}" class="btn btn-primary mt-3">Вернуться на главную</a>
+                    </div>`;
+                return;
+
+                document.getElementById('finish-session').style.display = 'none';
+            }
+
+            answerSelected = false;
+            document.getElementById('card-character').textContent = currentCard.character;
+            document.getElementById('card-pinyin').textContent = currentCard.pinyin;
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            const options = generateOptions(currentCard);
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'btn btn-outline-primary';
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                optionsDiv.appendChild(button);
+            });
+
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('next-card').style.display = 'none';
+        }
+
+        const totalCards = parseInt(document.getElementById('total-cards').textContent);
+
+        function checkAnswer(selected) {
+            if (answerSelected) return;
+            answerSelected = true;
+
+            const feedback = document.getElementById('feedback');
+            const correctAnswers = parseInt(document.getElementById('correct-answers').textContent);
+            //const totalAnswers = parseInt(document.getElementById('total-answers').textContent);
+
+            if (!answerHistory[currentCard.character]) {
+                answerHistory[currentCard.character] = { correct: 0, total: 0 };
+            }
+            answerHistory[currentCard.character].total += 1;
+            if (selected === currentCard.meaning) {
+                feedback.className = 'alert alert-success';
+                feedback.textContent = 'Правильно!';
+                document.getElementById('correct-answers').textContent = correctAnswers + 1;
+                answerHistory[currentCard.character].correct += 1;
+            } else {
+                feedback.className = 'alert alert-danger';
+                feedback.textContent = `Неправильно. Правильный ответ: ${currentCard.meaning}`;
+            }
+
+
+            // НЕ увеличиваем total-answers, а процент считаем по totalCards
+            const newCorrect = parseInt(document.getElementById('correct-answers').textContent);
+            const percentage = ((newCorrect / totalCards) * 100).toFixed(1);
+            //document.getElementById('total-answers').textContent = totalAnswers + 1;
+            //const percentage = ((parseInt(document.getElementById('correct-answers').textContent) / 
+                                //parseInt(document.getElementById('total-answers').textContent)) * 100).toFixed(1);
+            document.getElementById('percentage').textContent = percentage;
+
+            const optionButtons = document.getElementById('options').getElementsByTagName('button');
+            for (let button of optionButtons) {
+                button.disabled = true;
+            }
+
+            feedback.style.display = 'block';
+            document.getElementById('next-card').style.display = 'block';
+
+            if (sessionId && sessionId !== 'None') {
+                console.log('Saving answerHistory:', answerHistory);
+                fetch("{% url 'end_game' session_id %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        correct_answers: parseInt(document.getElementById('correct-answers').textContent),
+                        //total_answers: parseInt(document.getElementById('total-answers').textContent),
+                        remaining_cards: remainingCards,
+                        answer_history: answerHistory,
+                        is_finished: false
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to save intermediate session data:', response.status);
+                    } else {
+                        console.log('Intermediate session data saved successfully');
+                    }
+                }).catch(error => {
+                    console.error('Fetch error:', error);
+                });
+            } else {
+                console.error('Invalid sessionId:', sessionId);
+            }
+        }
+
+        // function endGame() {
+        //     if (sessionId && sessionId !== 'None') {
+        //         console.log('Ending game with answerHistory:', answerHistory);
+        //         fetch("{% url 'end_game' session_id %}", {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //                 'X-CSRFToken': '{{ csrf_token }}'
+        //             },
+        //             body: JSON.stringify({
+        //                 correct_answers: parseInt(document.getElementById('correct-answers').textContent),
+        //                 total_answers: parseInt(document.getElementById('total-answers').textContent),
+        //                 remaining_cards: remainingCards,
+        //                 answer_history: answerHistory
+        //             })
+        //         }).then(response => {
+        //             if (!response.ok) {
+        //                 console.error('Failed to save final game session:', response.status);
+        //             } else {
+        //                 console.log('Final session data saved successfully');
+        //             }
+        //         }).catch(error => {
+        //             console.error('Fetch error:', error);
+        //         });
+        //     } else {
+        //         console.error('Invalid sessionId:', sessionId);
+        //     }
+        // }
+
+        function endGame() {
+            fetch("{% url 'end_game' session_id %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    correct_answers: parseInt(document.getElementById('correct-answers').textContent),
+                    //total_answers: parseInt(document.getElementById('total-answers').textContent),
+                    remaining_cards: remainingCards,
+                    answer_history: answerHistory,
+                    is_finished: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // После завершения сессии — редирект на страницу статистики
+                window.location.href = "{% url 'stats' %}";
+            });
+            // .then(data => {
+            //     if (data.deleted) {
+            //         console.log("Session was deleted (no answers)");
+            //         window.location.href = "{% url 'home' %}";  // Перенаправляем на главную
+            //     }
+            // });
+        }
+
+        document.getElementById('next-card').addEventListener('click', displayCard);
+        window.addEventListener('load', () => {
+            if (!sessionId || sessionId === 'None') {
+                console.error('Session ID is invalid on page load:', sessionId);
+            }
+            remainingCards = shuffle(remainingCards);
+            displayCard();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && answerSelected && document.getElementById('next-card').style.display === 'block') {
+                event.preventDefault();
+                displayCard();
+            }
+        });
+
+        document.getElementById('finish-session').addEventListener('click', function() {
+            if (confirm('Вы действительно хотите завершить сессию досрочно?')) {
+                endGame();
+            }
+        });
+    </script>
+{% endblock %}

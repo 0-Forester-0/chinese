@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Ваши подборки</h2>
+            <a href="{% url 'create_collection' %}" class="btn btn-primary">Создать новую подборку</a>
+        </div>
+    </div>
+    {% if collections %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for collection in collections %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h3 class="card-title">{{ collection.name }}</h3>
+                            <p class="card-text"><strong>Категория:</strong> {{ collection.category }}</p>
+                            <p class="card-text"><strong>Карточек:</strong> {{ collection.card_count }}</p>
+                            <p class="card-text text-muted"><small>Создано: {{ collection.created_at|date:"d M Y" }}</small></p>
+                            <h5>Карточки в подборке:</h5>
+                            <ul class="list-group list-group-flush">
+                                {% for card in collection.cards %}
+                                    <li class="list-group-item">
+                                        {{ card.character }} ({{ card.pinyin }}): {{ card.meaning }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            У вас пока нет подборок. <a href="{% url 'create_collection' %}" class="alert-link">Создайте одну</a>.
+        </div>
+    {% endif %}
+{% endblock %}

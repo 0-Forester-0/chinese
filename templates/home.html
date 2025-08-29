@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        
+        <!-- Дашборд статистики -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title">Ваш прогресс</h2>
+            </div>
+            <div class="card-body">
+                <h3>Слабые слова (менее 50%)</h3>
+                {% if weak_words %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Иероглиф</th>
+                                <th>Пиньинь</th>
+                                <th>Перевод</th>
+                                <th>Процент</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for word in weak_words %}
+                                <tr>
+                                    <td>{{ word.character }}</td>
+                                    <td>{{ word.pinyin }}</td>
+                                    <td>{{ word.meaning }}</td>
+                                    <td>{{ word.percentage }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Нет слабых слов. Пройдите больше игр!</p>
+                {% endif %}
+                <hr>
+                <h3>Сильные слова (80% и выше)</h3>
+                {% if strong_words %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Иероглиф</th>
+                                <th>Пиньинь</th>
+                                <th>Перевод</th>
+                                <th>Процент</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for word in strong_words %}
+                                <tr>
+                                    <td>{{ word.character }}</td>
+                                    <td>{{ word.pinyin }}</td>
+                                    <td>{{ word.meaning }}</td>
+                                    <td>{{ word.percentage }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Нет сильных слов. Пройдите больше игр!</p>
+                {% endif %}
+                <a href="{% url 'stats' %}" class="btn btn-primary mt-3">Посмотреть полную статистику</a>
+            </div>
+        </div>
+
+        <!-- Существующий контент -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="card-title">Ваши карточки</h2>
+                    <div>
+                        <a href="{% url 'card_create' %}" class="btn btn-light">Создать новую карточку</a>
+                        <a href="{% url 'collections' %}" class="btn btn-light">Посмотреть подборки</a>
+                        <a href="{% url 'game_select_category' %}" class="btn btn-light">Играть</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if cards %}
+                    <div class="row">
+                        {% for card in cards %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card shadow-sm">
+                                    <div class="card-body">
+                                        <h3>{{ card.character }}</h3>
+                                        <p>Пиньинь: {{ card.pinyin }}</p>
+                                        <p>
+                                            Перевод:
+                                            <span class="collapse" id="meaning-{{ card.id }}">{{ card.meaning }}</span>
+                                            <button class="btn btn-link btn-sm" data-bs-toggle="collapse" data-bs-target="#meaning-{{ card.id }}">Показать</button>
+                                        </p>
+                                        <p>Категория: {{ card.category|default:"Без категории" }}</p>
+                                        <p>Создано: {{ card.created_at|date:"d M Y" }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        У вас пока нет карточек. <a href="{% url 'card_create' %}">Создайте одну</a>.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

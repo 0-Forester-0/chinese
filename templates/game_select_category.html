@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="card-title display-4">Выберите категорию для игры</h1>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <a href="{% url 'home' %}" class="btn btn-secondary mb-3">Вернуться к карточкам</a>
+                <div class="list-group">
+                    {% for category in categories %}
+                        <a href="{% url 'game' category %}" class="list-group-item list-group-item-action">
+                            {{ category }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

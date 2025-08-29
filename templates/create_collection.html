@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title">Создать подборку</h2>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="num_cards" class="form-label">Количество карточек</label>
+                        <input type="number" class="form-control" id="num_cards" name="num_cards" value="10" min="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Категория</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="HSK1">HSK 1</option>
+                            <option value="HSK2">HSK 2</option>
+                            <option value="HSK3">HSK 3</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Создать подборку</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

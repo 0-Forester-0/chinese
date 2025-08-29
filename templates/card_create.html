@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="card-title display-4">Create Card</h1>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Save Card</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hskCharacters = {{ hsk_characters|safe }};
+        const categorySelect = document.getElementById('category-select');
+        const characterSelect = document.getElementById('character-select');
+        const pinyinField = document.getElementById('pinyin-field');
+        const meaningField = document.getElementById('meaning-field');
+
+        function updateCharacterOptions() {
+            const category = categorySelect.value;
+            characterSelect.innerHTML = '';
+            const characters = hskCharacters[category];
+            Object.keys(characters).sort((a, b) => {
+                return characters[a].pinyin.localeCompare(characters[b].pinyin);
+            }).forEach(char => {
+                const option = document.createElement('option');
+                option.value = char;
+                option.textContent = `${char} (${characters[char].pinyin})`;
+                characterSelect.appendChild(option);
+            });
+            updateFields();
+        }
+
+        function updateFields() {
+            const category = categorySelect.value;
+            const character = characterSelect.value;
+            if (character && hskCharacters[category][character]) {
+                pinyinField.value = hskCharacters[category][character].pinyin;
+                meaningField.value = hskCharacters[category][character].meaning;
+            } else {
+                pinyinField.value = '';
+                meaningField.value = '';
+            }
+        }
+
+        categorySelect.addEventListener('change', updateCharacterOptions);
+        characterSelect.addEventListener('change', updateFields);
+        window.addEventListener('load', updateCharacterOptions);
+    </script>
+{% endblock %}

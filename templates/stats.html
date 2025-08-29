@@ -1,0 +1,163 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="card-title display-4">Статистика по аккаунту</h1>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title">Общий прогресс</h2>
+            </div>
+            <div class="card-body">
+                <h3>Процент освоения по уровням HSK</h3>
+                <canvas id="progressChart" height="100"></canvas>
+                <hr>
+                <h3>История игровых сессий</h3>
+                {% if sessions %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Категория</th>
+                                <th>Правильных ответов</th>
+                                <th>Всего карточек</th>
+                                <th>Процент</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                                <tr>
+                                    <td>{{ session.created_at|date:"d M Y H:i" }}</td>
+                                    <td>{{ session.category }}</td>
+                                    <td>{{ session.correct_answers }}</td>
+                                    <td>
+                                        {% if session.category == 'HSK1' %}151
+                                        {% elif session.category == 'HSK2' %}250
+                                        {% elif session.category == 'HSK3' %}762
+                                        {% else %}0{% endif %}
+                                    </td>
+                                    <td>{{ session.calculated_percentage|floatformat:1 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>Нет завершенных игровых сессий.</p>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Вернуться на главную</a>
+    </div>
+
+    {{ stats|json_script:"stats-data" }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // document.addEventListener('DOMContentLoaded', function () {
+        //     const stats = {{ stats|safe }};
+        //     const ctx = document.getElementById('progressChart').getContext('2d');
+        //     new Chart(ctx, {
+        //         type: 'bar',
+        //         data: {
+        //             labels: ['HSK1', 'HSK2', 'HSK3'],
+        //             datasets: [{
+        //                 label: 'Процент освоения',
+        //                 data: [stats.HSK1.percentage, stats.HSK2.percentage, stats.HSK3.percentage],
+        //                 backgroundColor: ['#007bff', '#28a745', '#dc3545'],
+        //                 borderColor: ['#0056b3', '#218838', '#c82333'],
+        //                 borderWidth: 1
+        //             }]
+        //         },
+        //         options: {
+        //             scales: {
+        //                 y: {
+        //                     beginAtZero: true,
+        //                     max: 100,
+        //                     title: {
+        //                         display: true,
+        //                         text: 'Процент (%)'
+        //                     }
+        //                 }
+        //             },
+        //             plugins: {
+        //                 legend: {
+        //                     display: false
+        //                 }
+        //             }
+        //         }
+        //     });
+        // });
+        // document.addEventListener('DOMContentLoaded', function () {
+        //     const stats = {{ stats|safe }};
+        //     const ctx = document.getElementById('progressChart').getContext('2d');
+        //     new Chart(ctx, {
+        //         type: 'bar',
+        //         data: {
+        //             labels: ['HSK1', 'HSK2', 'HSK3'],
+        //             datasets: [{
+        //                 label: 'Процент освоения',
+        //                 data: [stats.HSK1.percentage, stats.HSK2.percentage, stats.HSK3.percentage],
+        //                 backgroundColor: ['#007bff', '#28a745', '#dc3545'],
+        //                 borderColor: ['#0056b3', '#218838', '#c82333'],
+        //                 borderWidth: 1
+        //             }]
+        //         },
+        //         options: {
+        //             scales: {
+        //                 y: {
+        //                     beginAtZero: true,
+        //                     max: 100,
+        //                     title: {
+        //                         display: true,
+        //                         text: 'Процент (%)'
+        //                     }
+        //                 }
+        //             },
+        //             plugins: {
+        //                 legend: {
+        //                     display: false
+        //                 }
+        //             }
+        //         }
+        //     });
+        // });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}
