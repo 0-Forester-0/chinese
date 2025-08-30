@@ -48,11 +48,8 @@ WSGI_APPLICATION = 'srs_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'chinese_srs',
-        'CLIENT': {
-            'host': 'mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS',
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -82,5 +79,6 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False  # Для localhost
 
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 
 
