@@ -11,6 +11,7 @@ from .hsk3_data import HSK3_CHARACTERS
 from pymongo import MongoClient
 from bson import ObjectId
 import random
+import os
 import json
 import datetime
 import unicodedata
@@ -184,7 +185,7 @@ def card_create(request):
 
 @login_required
 def create_collection(request):
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
     db = client['chinese_srs']
     if request.method == 'POST':
         num_cards = int(request.POST.get('num_cards', 10))
@@ -204,7 +205,7 @@ def create_collection(request):
 @login_required
 def collections(request):
     collections = Collection.objects.filter(user=request.user)
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
     db = client['chinese_srs']
     for collection in collections:
         card_ids = [ObjectId(card_id) for card_id in collection.cards]
@@ -223,7 +224,7 @@ def game_select_category(request):
 #     if category not in HSK_CHARACTERS:
 #         return redirect('game_select_category')
 
-#     client = MongoClient('mongodb://localhost:27017/')
+#     client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
 #     db = client['chinese_srs']
 
 #     session = GameSession.objects.filter(user=request.user, category=category, total_answers__lt=len(HSK_CHARACTERS[category])).first()
@@ -243,7 +244,7 @@ def game(request, category):
     if category not in HSK_CHARACTERS:
         return redirect('game_select_category')
 
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
     db = client['chinese_srs']
 
     # Удаляем все сессии пользователя для этой категории с total_answers=0
@@ -304,7 +305,7 @@ def end_game(request, session_id):
         print("Invalid session_id received:", session_id)
         return JsonResponse({'status': 'error', 'message': 'Invalid session ID'}, status=400)
     
-    client = MongoClient('mongodb://localhost:27017/')
+    client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
     db = client['chinese_srs']
     
     try:
@@ -396,4 +397,5 @@ def dictionary_search(request):
             print(f"JSON decode error: {str(e)}")
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
     
+
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
