@@ -51,7 +51,7 @@ DATABASES = {
         'ENGINE': 'djongo',
         'NAME': 'chinese_srs',
         'CLIENT': {
-            'host': 'mongodb://localhost:27017/',
+            'host': 'mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS',
         }
     }
 }
@@ -81,3 +81,4 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False  # Для localhost
 
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
