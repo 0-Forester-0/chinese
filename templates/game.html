@@ -2,17 +2,17 @@
 {% load static %}
 {% block content %}
     <div class="container mt-5">
-        <h1 class="card-title display-4">Игра: Угадай перевод ({{ category }})</h1>
+        <h1 class="card-title display-4 text-break">{{ category }}</h1>
         <div class="card shadow-sm">
             <div class="card-body">
-                <a href="{% url 'home' %}" class="btn btn-secondary mb-3">Вернуться к карточкам</a>
-                <button id="finish-session" class="btn btn-danger mt-3">Завершить сессию</button>
+                <a href="{% url 'home' %}" class="btn btn-secondary mb-3 w-100 w-sm-auto">Вернуться к карточкам</a>
+                <button id="finish-session" class="btn btn-danger mt-3 w-100 w-sm-auto">Завершить сессию</button>
                 <div id="game-area">
-                    <h2 id="card-character"></h2>
+                    <h2 id="card-character" class="text-break"></h2>
                     <p>Пиньинь: <span id="card-pinyin"></span></p>
                     <div id="options" class="d-grid gap-2"></div>
                     <div id="feedback" class="alert" style="display: none;"></div>
-                    <button id="next-card" class="btn btn-primary mt-3" style="display: none;">Следующая карточка</button>
+                    <button id="next-card" class="btn btn-primary mt-3 w-100 w-sm-auto" style="display: none;">Следующая карточка</button>
                     <div id="stats" class="mt-3">
                         Правильных ответов: <span id="correct-answers">{{ correct_answers }}</span>/<span id="total-cards">{{ total_cards_in_category }}</span><br>
                         Процент: <span id="percentage">{{ percentage|floatformat:1 }}</span>%
