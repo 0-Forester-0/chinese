@@ -48,9 +48,12 @@
             </div>
             <div class="card-body">
                 <h3>Процент освоения по уровням HSK</h3>
-                <canvas id="progressChart" height="100"></canvas>
+                <div style="overflow-x:auto;">
+                    <canvas id="progressChart" height="100" style="max-width:100%;"></canvas>
+                </div>
                 <hr>
                 <h3>История игровых сессий</h3>
+                <div class="table-responsive">
                 {% if sessions %}
                     <table class="table table-striped">
                         <thead>
@@ -82,9 +85,10 @@
                 {% else %}
                     <p>Нет завершенных игровых сессий.</p>
                 {% endif %}
+                </div>
             </div>
         </div>
-        <a href="{% url 'home' %}" class="btn btn-secondary">Вернуться на главную</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary mb-3 w-100 w-sm-auto">Вернуться на главную</a>
     </div>
 
     {{ stats|json_script:"stats-data" }}
@@ -159,7 +163,6 @@
         //     });
         // });
     </script>
-    <!-- <script src="{% static 'js/dashboard.js' %}"></script> -->
     <script>
             document.addEventListener('DOMContentLoaded', function () {
             const ctx = document.getElementById('progressChart');
