@@ -14,8 +14,12 @@
                     </button>
                 </div>
                 <div id="game-area">
-                    <h2 id="card-character" class="text-break"></h2>
-                    <p>Пиньинь: <span id="card-pinyin"></span></p>
+                    <div class="character-center">
+                        <h2 id="card-character" class="character-large text-break mb-2"></h2>
+                        <div class="pinyin-text mb-4">
+                            Пиньинь: <span id="card-pinyin"></span>
+                        </div>
+                    </div>
                     <div id="options" class="d-grid gap-2"></div>
                     <div id="feedback" class="alert" style="display: none;"></div>
                     <button id="next-card" class="btn btn-primary mt-3 w-100 w-sm-auto" style="display: none;">Следующая карточка</button>
@@ -29,11 +33,32 @@
     </div>
 
     <style>
+        /* Кнопки */
         @media (min-width: 576px) {
             .custom-btn-width {
                 max-width: 240px;
             }
         }
+        /* Центрирование иероглифа и пиньиня */
+        .character-center {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .character-large {
+            font-size: 4rem;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+        @media (max-width: 576px) {
+            .character-large {
+                font-size: 2.5rem;
+            }
+        }
+        .pinyin-text {
+            color: #6c757d;
+            font-size: 1.25rem;
+        }
+        /* Можно добавить mb-4 к .character-center, если нужен больший отступ */
     </style>
 
     <script>
@@ -113,7 +138,6 @@
 
             const feedback = document.getElementById('feedback');
             const correctAnswers = parseInt(document.getElementById('correct-answers').textContent);
-            //const totalAnswers = parseInt(document.getElementById('total-answers').textContent);
 
             if (!answerHistory[currentCard.character]) {
                 answerHistory[currentCard.character] = { correct: 0, total: 0 };
@@ -129,13 +153,9 @@
                 feedback.textContent = `Неправильно. Правильный ответ: ${currentCard.meaning}`;
             }
 
-
-            // НЕ увеличиваем total-answers, а процент считаем по totalCards
             const newCorrect = parseInt(document.getElementById('correct-answers').textContent);
             const percentage = ((newCorrect / totalCards) * 100).toFixed(1);
-            //document.getElementById('total-answers').textContent = totalAnswers + 1;
-            //const percentage = ((parseInt(document.getElementById('correct-answers').textContent) / 
-                                //parseInt(document.getElementById('total-answers').textContent)) * 100).toFixed(1);
+
             document.getElementById('percentage').textContent = percentage;
 
             const optionButtons = document.getElementById('options').getElementsByTagName('button');
@@ -156,7 +176,6 @@
                     },
                     body: JSON.stringify({
                         correct_answers: parseInt(document.getElementById('correct-answers').textContent),
-                        //total_answers: parseInt(document.getElementById('total-answers').textContent),
                         remaining_cards: remainingCards,
                         answer_history: answerHistory,
                         is_finished: false
@@ -175,35 +194,6 @@
             }
         }
 
-        // function endGame() {
-        //     if (sessionId && sessionId !== 'None') {
-        //         console.log('Ending game with answerHistory:', answerHistory);
-        //         fetch("{% url 'end_game' session_id %}", {
-        //             method: 'POST',
-        //             headers: {
-        //                 'Content-Type': 'application/json',
-        //                 'X-CSRFToken': '{{ csrf_token }}'
-        //             },
-        //             body: JSON.stringify({
-        //                 correct_answers: parseInt(document.getElementById('correct-answers').textContent),
-        //                 total_answers: parseInt(document.getElementById('total-answers').textContent),
-        //                 remaining_cards: remainingCards,
-        //                 answer_history: answerHistory
-        //             })
-        //         }).then(response => {
-        //             if (!response.ok) {
-        //                 console.error('Failed to save final game session:', response.status);
-        //             } else {
-        //                 console.log('Final session data saved successfully');
-        //             }
-        //         }).catch(error => {
-        //             console.error('Fetch error:', error);
-        //         });
-        //     } else {
-        //         console.error('Invalid sessionId:', sessionId);
-        //     }
-        // }
-
         function endGame() {
             fetch("{% url 'end_game' session_id %}", {
                 method: 'POST',
@@ -213,7 +203,6 @@
                 },
                 body: JSON.stringify({
                     correct_answers: parseInt(document.getElementById('correct-answers').textContent),
-                    //total_answers: parseInt(document.getElementById('total-answers').textContent),
                     remaining_cards: remainingCards,
                     answer_history: answerHistory,
                     is_finished: true
@@ -221,15 +210,8 @@
             })
             .then(response => response.json())
             .then(data => {
-                // После завершения сессии — редирект на страницу статистики
                 window.location.href = "{% url 'stats' %}";
             });
-            // .then(data => {
-            //     if (data.deleted) {
-            //         console.log("Session was deleted (no answers)");
-            //         window.location.href = "{% url 'home' %}";  // Перенаправляем на главную
-            //     }
-            // });
         }
 
         document.getElementById('next-card').addEventListener('click', displayCard);
