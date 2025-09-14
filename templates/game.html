@@ -5,8 +5,14 @@
         <h1 class="card-title display-4 text-break">{{ category }}</h1>
         <div class="card shadow-sm">
             <div class="card-body">
-                <a href="{% url 'home' %}" class="btn btn-secondary mb-3 w-100 w-sm-auto">Вернуться к карточкам</a>
-                <button id="finish-session" class="btn btn-danger mt-3 w-100 w-sm-auto">Завершить сессию</button>
+                <div class="d-flex flex-column flex-sm-row gap-2 mb-3 align-items-stretch">
+                    <a href="{% url 'home' %}" class="btn btn-secondary flex-fill custom-btn-width">
+                        Вернуться к карточкам
+                    </a>
+                    <button id="finish-session" class="btn btn-danger flex-fill custom-btn-width">
+                        Завершить сессию
+                    </button>
+                </div>
                 <div id="game-area">
                     <h2 id="card-character" class="text-break"></h2>
                     <p>Пиньинь: <span id="card-pinyin"></span></p>
@@ -21,6 +27,14 @@
             </div>
         </div>
     </div>
+
+    <style>
+        @media (min-width: 576px) {
+            .custom-btn-width {
+                max-width: 240px;
+            }
+        }
+    </style>
 
     <script>
         const cards = {{ cards_json|safe }};
