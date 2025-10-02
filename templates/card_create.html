@@ -14,8 +14,16 @@
         </div>
     </div>
 
+    <div id="hsk-data" 
+         data-hsk-characters="{{ hsk_characters|escapejs }}"
+         style="display: none;">
+    </div>
+
     <script>
-        const hskCharacters = {{ hsk_characters|safe }};
+        // Получаем данные из data-атрибута безопасным способом
+        const hskDataElement = document.getElementById('hsk-data');
+        const hskCharacters = JSON.parse(hskDataElement.dataset.hskCharacters);
+        
         const categorySelect = document.getElementById('category-select');
         const characterSelect = document.getElementById('character-select');
         const pinyinField = document.getElementById('pinyin-field');
@@ -25,6 +33,12 @@
             const category = categorySelect.value;
             characterSelect.innerHTML = '';
             const characters = hskCharacters[category];
+            
+            if (!characters) {
+                console.warn('No characters found for category:', category);
+                return;
+            }
+            
             Object.keys(characters).sort((a, b) => {
                 return characters[a].pinyin.localeCompare(characters[b].pinyin);
             }).forEach(char => {
@@ -39,7 +53,8 @@
         function updateFields() {
             const category = categorySelect.value;
             const character = characterSelect.value;
-            if (character && hskCharacters[category][character]) {
+            
+            if (character && hskCharacters[category] && hskCharacters[category][character]) {
                 pinyinField.value = hskCharacters[category][character].pinyin;
                 meaningField.value = hskCharacters[category][character].meaning;
             } else {
@@ -48,9 +63,13 @@
             }
         }
 
-        categorySelect.addEventListener('change', updateCharacterOptions);
-        characterSelect.addEventListener('change', updateFields);
+        if (categorySelect) {
+            categorySelect.addEventListener('change', updateCharacterOptions);
+        }
+        if (characterSelect) {
+            characterSelect.addEventListener('change', updateFields);
+        }
+        
         window.addEventListener('load', updateCharacterOptions);
     </script>
-
 {% endblock %}
