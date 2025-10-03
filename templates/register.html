@@ -15,8 +15,11 @@
                             {{ form.username }}
                         </div>
                         <div class="mb-3">
-                            <label for="{{ form.password1.id_for_label }}" class="form-label">Пароль\n(минимум 8 символов, цифры и обязательно буквы)</label>
+                            <label for="{{ form.password1.id_for_label }}" class="form-label">Пароль</label>
                             {{ form.password1 }}
+                            <div class="form-text text-muted">
+                                Пароль должен содержать минимум 8 символов и не может состоять только из цифр.
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="{{ form.password2.id_for_label }}" class="form-label">Подтверждение пароля</label>
