@@ -18,4 +18,10 @@ urlpatterns = [
     path('stats/', views.stats, name='stats'),
     path('dictionary/', views.dictionary, name='dictionary'),
     path('dictionary/search/', views.dictionary_search, name='dictionary_search'),
+
+    # ── Сессии изучения (SM-2) ──────────────────────────────────────────────
+    path('study/', views.study_select, name='study_select'),
+    path('study/due-count/', views.study_due_count, name='study_due_count'),
+    path('study/<str:category>/<int:count>/', views.study_session_start, name='study_session_start'),
+    path('study/answer/', views.study_answer, name='study_answer'),
 ]
