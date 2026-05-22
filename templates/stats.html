@@ -1,225 +1,363 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script>{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    <div class="container mt-5">
-        <h1 class="card-title display-4">Статистика по аккаунту</h1>
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
-                <h2 class="card-title">Общий прогресс</h2>
-            </div>
-            <div class="card-body">
-                <h3>Процент освоения по уровням HSK</h3>
-                <div style="overflow-x:auto;">
-                    <canvas id="progressChart" height="100" style="max-width:100%;"></canvas>
+<div class="container mt-4">
+    <h1 class="display-4 mb-4">Статистика</h1>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ВКЛАДКИ
+    ═══════════════════════════════════════════════════════ -->
+    <ul class="nav nav-tabs mb-4" id="statsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="sm2-tab" data-bs-toggle="tab"
+                    data-bs-target="#sm2-panel" type="button">
+                📚 Изучение (SM-2)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="test-tab" data-bs-toggle="tab"
+                    data-bs-target="#test-panel" type="button">
+                🎮 Тесты HSK
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ══════════════════════════════════════════════════
+             ВКЛАДКА 1: SM-2
+        ══════════════════════════════════════════════════ -->
+        <div class="tab-pane fade show active" id="sm2-panel" role="tabpanel">
+
+            <!-- Сводные карточки -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="display-6 fw-bold text-primary">{{ sm2_total.studied }}</div>
+                            <div class="text-muted small">Изучено карточек</div>
+                        </div>
+                    </div>
                 </div>
-                <hr>
-                <h3>История игровых сессий</h3>
-                <div class="table-responsive">
-                {% if sessions %}
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Дата</th>
-                                <th>Категория</th>
-                                <th>Правильных ответов</th>
-                                <th>Всего карточек</th>
-                                <th>Процент</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for session in sessions %}
+                <div class="col-6 col-md-3">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="display-6 fw-bold text-success">{{ sm2_total.mastered }}</div>
+                            <div class="text-muted small">Освоено</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="display-6 fw-bold text-warning">{{ sm2_total.due_today }}</div>
+                            <div class="text-muted small">К повторению сегодня</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card text-center shadow-sm h-100">
+                        <div class="card-body py-3">
+                            <div class="display-6 fw-bold text-secondary">{{ sm2_total.total_answers }}</div>
+                            <div class="text-muted small">Всего ответов</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Прогресс по уровням HSK -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Прогресс по уровням</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        {% for cat, s in sm2_stats.items %}
+                        <div class="col-12 col-md-4">
+                            <h6 class="fw-bold">{{ cat }}
+                                <span class="text-muted fw-normal">({{ s.total }} слов)</span>
+                            </h6>
+
+                            <!-- Изучено -->
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Изучено</span>
+                                <span>{{ s.studied }} / {{ s.total }} ({{ s.studied_pct }}%)</span>
+                            </div>
+                            <div class="progress mb-2" style="height:8px;">
+                                <div class="progress-bar bg-primary"
+                                     style="width: {{ s.studied_pct }}%"></div>
+                            </div>
+
+                            <!-- Освоено -->
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Освоено</span>
+                                <span>{{ s.mastered }} / {{ s.total }} ({{ s.mastered_pct }}%)</span>
+                            </div>
+                            <div class="progress mb-3" style="height:8px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ s.mastered_pct }}%"></div>
+                            </div>
+
+                            <!-- Метрики -->
+                            <div class="row text-center small g-1">
+                                <div class="col-4">
+                                    <div class="bg-light rounded p-1">
+                                        <div class="fw-bold text-warning">{{ s.due_today }}</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">повторить</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-light rounded p-1">
+                                        <div class="fw-bold text-info">{{ s.accuracy }}%</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">точность</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-light rounded p-1">
+                                        <div class="fw-bold text-secondary">{{ s.avg_ef }}</div>
+                                        <div class="text-muted" style="font-size:0.75rem;">ср. EF</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- График SM-2 (Chart.js) -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Визуализация прогресса</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sm2Chart" height="80"></canvas>
+                </div>
+            </div>
+
+            <!-- Таблица ближайших карточек к повторению -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Ближайшие карточки к повторению</h5>
+                    <a href="{% url 'study_select' %}" class="btn btn-success btn-sm">
+                        Начать повторение →
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if upcoming %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Иероглиф</th>
+                                    <th>Пиньинь</th>
+                                    <th>Перевод</th>
+                                    <th>Уровень</th>
+                                    <th>Повторений</th>
+                                    <th>Интервал (дн.)</th>
+                                    <th>EF</th>
+                                    <th>Следующий показ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in upcoming %}
+                                <tr {% if r.overdue %}class="table-warning"{% endif %}>
+                                    <td class="fw-bold fs-5">{{ r.character }}</td>
+                                    <td>{{ r.pinyin }}</td>
+                                    <td>{{ r.meaning }}</td>
+                                    <td><span class="badge bg-secondary">{{ r.category }}</span></td>
+                                    <td>{{ r.n }}</td>
+                                    <td>{{ r.interval }}</td>
+                                    <td>{{ r.ef }}</td>
+                                    <td>
+                                        {% if r.overdue %}
+                                            <span class="badge bg-warning text-dark">
+                                                ⚠ {{ r.next_review_str }}
+                                            </span>
+                                        {% else %}
+                                            {{ r.next_review_str }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            Данных пока нет. <a href="{% url 'study_select' %}">Начните изучение!</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div><!-- /sm2-panel -->
+
+
+        <!-- ══════════════════════════════════════════════════
+             ВКЛАДКА 2: ТЕСТЫ
+        ══════════════════════════════════════════════════ -->
+        <div class="tab-pane fade" id="test-panel" role="tabpanel">
+
+            <!-- График тестов -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Лучший результат по уровням</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="testChart" height="80"></canvas>
+                </div>
+            </div>
+
+            <!-- История сессий -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">История тестовых сессий</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Уровень</th>
+                                    <th>Правильных</th>
+                                    <th>Всего слов</th>
+                                    <th>Результат</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions %}
                                 <tr>
                                     <td>{{ session.created_at|date:"d M Y H:i" }}</td>
-                                    <td>{{ session.category }}</td>
+                                    <td><span class="badge bg-primary">{{ session.category }}</span></td>
                                     <td>{{ session.correct_answers }}</td>
                                     <td>
                                         {% if session.category == 'HSK1' %}151
                                         {% elif session.category == 'HSK2' %}250
                                         {% elif session.category == 'HSK3' %}762
-                                        {% else %}0{% endif %}
+                                        {% else %}—{% endif %}
                                     </td>
-                                    <td>{{ session.calculated_percentage|floatformat:1 }}%</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress flex-grow-1" style="height:8px; min-width:60px;">
+                                                <div class="progress-bar
+                                                    {% if session.calculated_percentage >= 80 %}bg-success
+                                                    {% elif session.calculated_percentage >= 50 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                     style="width:{{ session.calculated_percentage }}%">
+                                                </div>
+                                            </div>
+                                            <span class="small fw-bold">
+                                                {{ session.calculated_percentage|floatformat:1 }}%
+                                            </span>
+                                        </div>
+                                    </td>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p>Нет завершенных игровых сессий.</p>
-                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            Нет завершённых тестовых сессий.
+                            <a href="{% url 'game_select_category' %}">Пройти тест</a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-        </div>
-        <a href="{% url 'home' %}" class="btn btn-secondary mb-3 w-100 w-sm-auto">Вернуться на главную</a>
-    </div>
 
-    {{ stats|json_script:"stats-data" }}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script>
-        // document.addEventListener('DOMContentLoaded', function () {
-        //     const stats = {{ stats|safe }};
-        //     const ctx = document.getElementById('progressChart').getContext('2d');
-        //     new Chart(ctx, {
-        //         type: 'bar',
-        //         data: {
-        //             labels: ['HSK1', 'HSK2', 'HSK3'],
-        //             datasets: [{
-        //                 label: 'Процент освоения',
-        //                 data: [stats.HSK1.percentage, stats.HSK2.percentage, stats.HSK3.percentage],
-        //                 backgroundColor: ['#007bff', '#28a745', '#dc3545'],
-        //                 borderColor: ['#0056b3', '#218838', '#c82333'],
-        //                 borderWidth: 1
-        //             }]
-        //         },
-        //         options: {
-        //             scales: {
-        //                 y: {
-        //                     beginAtZero: true,
-        //                     max: 100,
-        //                     title: {
-        //                         display: true,
-        //                         text: 'Процент (%)'
-        //                     }
-        //                 }
-        //             },
-        //             plugins: {
-        //                 legend: {
-        //                     display: false
-        //                 }
-        //             }
-        //         }
-        //     });
-        // });
-        // document.addEventListener('DOMContentLoaded', function () {
-        //     const stats = {{ stats|safe }};
-        //     const ctx = document.getElementById('progressChart').getContext('2d');
-        //     new Chart(ctx, {
-        //         type: 'bar',
-        //         data: {
-        //             labels: ['HSK1', 'HSK2', 'HSK3'],
-        //             datasets: [{
-        //                 label: 'Процент освоения',
-        //                 data: [stats.HSK1.percentage, stats.HSK2.percentage, stats.HSK3.percentage],
-        //                 backgroundColor: ['#007bff', '#28a745', '#dc3545'],
-        //                 borderColor: ['#0056b3', '#218838', '#c82333'],
-        //                 borderWidth: 1
-        //             }]
-        //         },
-        //         options: {
-        //             scales: {
-        //                 y: {
-        //                     beginAtZero: true,
-        //                     max: 100,
-        //                     title: {
-        //                         display: true,
-        //                         text: 'Процент (%)'
-        //                     }
-        //                 }
-        //             },
-        //             plugins: {
-        //                 legend: {
-        //                     display: false
-        //                 }
-        //             }
-        //         }
-        //     });
-        // });
-    </script>
-    <script>
-            document.addEventListener('DOMContentLoaded', function () {
-            const ctx = document.getElementById('progressChart');
-            if (!ctx) {
-                return;
-            }
-        
-            let stats;
-            try {
-                stats = JSON.parse(document.getElementById('stats-data').textContent) || {
-                    HSK1: { best_percentage: 0 },
-                    HSK2: { best_percentage: 0 },
-                    HSK3: { best_percentage: 0 }
-                };
-            } catch (e) {
-                console.error('Error parsing stats JSON:', e);
-                stats = {
-                    HSK1: { best_percentage: 0 },
-                    HSK2: { best_percentage: 0 },
-                    HSK3: { best_percentage: 0 }
-                };
-            }
-        
-            new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['HSK1', 'HSK2', 'HSK3'],
-                    datasets: [{
-                        label: 'Лучший процент освоения',
-                        data: [
-                            stats.HSK1.best_percentage || 0,
-                            stats.HSK2.best_percentage || 0,
-                            stats.HSK3.best_percentage || 0
-                        ],
-                        backgroundColor: ['#007bff', '#28a745', '#dc3545'],
-                        borderColor: ['#0056b3', '#218838', '#c82333'],
-                        borderWidth: 1
-                    }]
+        </div><!-- /test-panel -->
+    </div><!-- /tab-content -->
+
+    <a href="{% url 'home' %}" class="btn btn-secondary mb-4">← На главную</a>
+</div>
+
+<!-- Данные для графиков -->
+{{ test_stats|json_script:"test-stats-data" }}
+{{ sm2_stats|json_script:"sm2-stats-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Тестовый график ──────────────────────────────────────────────────
+    const testStats = JSON.parse(document.getElementById('test-stats-data').textContent);
+    new Chart(document.getElementById('testChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['HSK1', 'HSK2', 'HSK3'],
+            datasets: [{
+                label: 'Лучший результат (%)',
+                data: [
+                    testStats.HSK1?.best_percentage || 0,
+                    testStats.HSK2?.best_percentage || 0,
+                    testStats.HSK3?.best_percentage || 0,
+                ],
+                backgroundColor: ['#0d6efd88', '#198754aa', '#dc354588'],
+                borderColor:     ['#0d6efd',   '#198754',   '#dc3545'],
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, max: 100,
+                     title: { display: true, text: '%' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // ── SM-2 график ───────────────────────────────────────────────────────
+    const sm2Stats = JSON.parse(document.getElementById('sm2-stats-data').textContent);
+    const cats = ['HSK1', 'HSK2', 'HSK3'];
+
+    new Chart(document.getElementById('sm2Chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: cats,
+            datasets: [
+                {
+                    label: 'Всего слов',
+                    data: cats.map(c => sm2Stats[c]?.total || 0),
+                    backgroundColor: '#dee2e6',
+                    borderColor: '#adb5bd',
+                    borderWidth: 1,
                 },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Процент (%)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        });
-    </script> 
+                {
+                    label: 'Изучено',
+                    data: cats.map(c => sm2Stats[c]?.studied || 0),
+                    backgroundColor: '#0d6efd88',
+                    borderColor: '#0d6efd',
+                    borderWidth: 2,
+                },
+                {
+                    label: 'Освоено (интервал ≥ 7 дн.)',
+                    data: cats.map(c => sm2Stats[c]?.mastered || 0),
+                    backgroundColor: '#19875488',
+                    borderColor: '#198754',
+                    borderWidth: 2,
+                },
+                {
+                    label: 'К повторению сегодня',
+                    data: cats.map(c => sm2Stats[c]?.due_today || 0),
+                    backgroundColor: '#ffc10788',
+                    borderColor: '#ffc107',
+                    borderWidth: 2,
+                },
+            ]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true,
+                     title: { display: true, text: 'Карточки' } }
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
