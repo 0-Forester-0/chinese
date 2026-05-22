@@ -399,3 +399,207 @@ def dictionary_search(request):
     
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+MONGO_URI = 'mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS'
+
+
+def _sm2_update(stats, quality):
+    """
+    Обновляет параметры карточки по алгоритму SM-2.
+    quality: 0 — не знаю, 3 — с трудом, 5 — легко
+    """
+    ef       = stats.get('ef', 2.5)
+    n        = stats.get('n', 0)
+    interval = stats.get('interval', 1)
+
+    if quality >= 3:
+        if n == 0:
+            interval = 1
+        elif n == 1:
+            interval = 6
+        else:
+            interval = round(interval * ef)
+        n += 1
+    else:
+        # Провал — сброс
+        n        = 0
+        interval = 1
+
+    # Обновление коэффициента лёгкости
+    ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    ef = max(1.3, round(ef, 4))
+
+    next_review = datetime.datetime.now() + datetime.timedelta(days=interval)
+    return ef, n, interval, next_review
+
+
+@login_required
+def study_select(request):
+    """Страница выбора категории и количества карточек."""
+    if request.method == 'POST':
+        category = request.POST.get('category', 'HSK1')
+        count    = max(1, min(200, int(request.POST.get('count', 20))))
+        return redirect('study_session_start', category=category, count=count)
+    return render(request, 'study_select.html', {
+        'categories': ['HSK1', 'HSK2', 'HSK3']
+    })
+
+
+@login_required
+def study_due_count(request):
+    """
+    AJAX: возвращает количество карточек, готовых к повторению,
+    и количество новых карточек для выбранной категории.
+    """
+    category = request.GET.get('category', 'HSK1')
+    if category not in HSK_CHARACTERS:
+        return JsonResponse({'due': 0, 'new_count': 0})
+
+    client = MongoClient(MONGO_URI)
+    db     = client['chinese_srs']
+    now    = datetime.datetime.now()
+
+    all_chars = set(HSK_CHARACTERS[category].keys())
+
+    # Карточки с историей изучения
+    studied = {
+        s['character']: s
+        for s in db['card_study_stats'].find(
+            {'user_id': request.user.id, 'category': category}
+        )
+    }
+
+    due_count = sum(
+        1 for char, s in studied.items()
+        if char in all_chars and s.get('next_review', now) <= now
+    )
+    new_count = len(all_chars - set(studied.keys()))
+
+    client.close()
+    return JsonResponse({'due': due_count, 'new_count': new_count})
+
+
+@login_required
+def study_session_start(request, category, count):
+    """Формирует список карточек для сессии и рендерит страницу изучения."""
+    if category not in HSK_CHARACTERS:
+        return redirect('study_select')
+
+    count  = max(1, min(200, int(count)))
+    client = MongoClient(MONGO_URI)
+    db     = client['chinese_srs']
+    now    = datetime.datetime.now()
+
+    all_chars = list(HSK_CHARACTERS[category].keys())
+
+    # Загружаем статистику пользователя по этой категории
+    all_stats = {
+        s['character']: s
+        for s in db['card_study_stats'].find(
+            {'user_id': request.user.id, 'category': category}
+        )
+    }
+    client.close()
+
+    # 1. Карточки, срок повторения которых наступил
+    due_cards = [
+        char for char in all_chars
+        if char in all_stats
+        and all_stats[char].get('next_review', now) <= now
+    ]
+    due_cards.sort(key=lambda c: all_stats[c].get('next_review', now))
+
+    # 2. Новые карточки (ещё никогда не изучались)
+    new_cards = [char for char in all_chars if char not in all_stats]
+    random.shuffle(new_cards)
+
+    # Объединяем: сначала просроченные, затем новые
+    session_chars = (due_cards + new_cards)[:count]
+
+    cards_data = [
+        {
+            'character': char,
+            'pinyin':    HSK_CHARACTERS[category][char]['pinyin'],
+            'meaning':   HSK_CHARACTERS[category][char]['meaning'],
+            'is_new':    char not in all_stats,
+            'n':         all_stats.get(char, {}).get('n', 0),
+        }
+        for char in session_chars
+    ]
+
+    return render(request, 'study_session.html', {
+        'cards_json': json.dumps(cards_data, ensure_ascii=False),
+        'category':   category,
+        'count':      len(cards_data),
+    })
+
+
+@login_required
+@csrf_exempt
+def study_answer(request):
+    """
+    AJAX POST: принимает оценку пользователя и обновляет параметры SM-2
+    в коллекции card_study_stats.
+
+    Тело запроса (JSON):
+        character — иероглиф
+        category  — HSK1 / HSK2 / HSK3
+        quality   — 0 (не знаю) | 3 (с трудом) | 5 (легко)
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        data      = json.loads(request.body)
+        character = data['character']
+        category  = data.get('category', 'HSK1')
+        quality   = int(data['quality'])
+
+        if quality not in (0, 1, 2, 3, 4, 5):
+            quality = max(0, min(5, quality))
+    except (KeyError, ValueError, json.JSONDecodeError) as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    client = MongoClient(MONGO_URI)
+    db     = client['chinese_srs']
+
+    # Находим или создаём запись статистики
+    stats = db['card_study_stats'].find_one({
+        'user_id':   request.user.id,
+        'character': character,
+        'category':  category,
+    }) or {
+        'ef':            2.5,
+        'n':             0,
+        'interval':      1,
+        'correct_count': 0,
+        'total_count':   0,
+    }
+
+    ef, n, interval, next_review = _sm2_update(stats, quality)
+
+    correct_count = stats.get('correct_count', 0) + (1 if quality >= 3 else 0)
+    total_count   = stats.get('total_count',   0) + 1
+
+    db['card_study_stats'].update_one(
+        {'user_id': request.user.id, 'character': character, 'category': category},
+        {'$set': {
+            'ef':            ef,
+            'n':             n,
+            'interval':      interval,
+            'next_review':   next_review,
+            'correct_count': correct_count,
+            'total_count':   total_count,
+            'updated_at':    datetime.datetime.now(),
+        }},
+        upsert=True
+    )
+    client.close()
+
+    return JsonResponse({
+        'status':      'success',
+        'interval':    interval,
+        'next_review': next_review.strftime('%Y-%m-%d'),
+        'ef':          ef,
+        'n':           n,
+    })
