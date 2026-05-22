@@ -137,29 +137,97 @@ def home(request):
 def stats(request):
     sessions = GameSession.objects.filter(user=request.user).order_by('-created_at')
     HSK_TOTAL = {'HSK1': 151, 'HSK2': 250, 'HSK3': 762}
-    stats = {
+
+    # ── Статистика тестов ───────────────────────────────────────────────────
+    test_stats = {
         'HSK1': {'best_percentage': 0.0},
         'HSK2': {'best_percentage': 0.0},
-        'HSK3': {'best_percentage': 0.0}
+        'HSK3': {'best_percentage': 0.0},
     }
-
-    # Для таблицы: пересчитываем процент для каждой сессии
     for session in sessions:
         total_cards = HSK_TOTAL.get(session.category, 0)
-        if total_cards > 0:
-            session.calculated_percentage = round((session.correct_answers / total_cards) * 100, 1)
-        else:
-            session.calculated_percentage = 0.0
-
-    # Для графика: ищем лучший процент по каждой категории
+        session.calculated_percentage = (
+            round((session.correct_answers / total_cards) * 100, 1)
+            if total_cards > 0 else 0.0
+        )
     for cat in ['HSK1', 'HSK2', 'HSK3']:
         cat_sessions = [s for s in sessions if s.category == cat]
         if cat_sessions:
-            stats[cat]['best_percentage'] = max(s.calculated_percentage for s in cat_sessions)
+            test_stats[cat]['best_percentage'] = max(
+                s.calculated_percentage for s in cat_sessions
+            )
+
+    # ── SM-2 статистика ─────────────────────────────────────────────────────
+    client = MongoClient(MONGO_URI)
+    db     = client['chinese_srs']
+    now    = datetime.datetime.now()
+
+    sm2_records = list(db['card_study_stats'].find({'user_id': request.user.id}))
+    client.close()
+
+    # Агрегат по категориям
+    sm2_stats = {}
+    for cat, total in HSK_TOTAL.items():
+        cat_records = [r for r in sm2_records if r.get('category') == cat]
+
+        studied     = len(cat_records)
+        due_today   = sum(1 for r in cat_records if r.get('next_review', now) <= now)
+        # «Освоено» — карточки с n >= 2 и интервалом >= 7 дней
+        mastered    = sum(1 for r in cat_records if r.get('n', 0) >= 2 and r.get('interval', 0) >= 7)
+        new_cards   = total - studied
+        total_answers   = sum(r.get('total_count', 0)   for r in cat_records)
+        correct_answers = sum(r.get('correct_count', 0) for r in cat_records)
+        avg_ef = (
+            round(sum(r.get('ef', 2.5) for r in cat_records) / studied, 2)
+            if studied > 0 else 2.5
+        )
+        accuracy = (
+            round(correct_answers / total_answers * 100, 1)
+            if total_answers > 0 else 0.0
+        )
+
+        sm2_stats[cat] = {
+            'total':           total,
+            'studied':         studied,
+            'due_today':       due_today,
+            'mastered':        mastered,
+            'new_cards':       new_cards,
+            'total_answers':   total_answers,
+            'correct_answers': correct_answers,
+            'accuracy':        accuracy,
+            'avg_ef':          avg_ef,
+            'studied_pct':     round(studied  / total * 100, 1) if total > 0 else 0,
+            'mastered_pct':    round(mastered / total * 100, 1) if total > 0 else 0,
+        }
+
+    # Ближайшие к повторению карточки (до 30 штук) — для таблицы
+    upcoming = sorted(
+        sm2_records,
+        key=lambda r: r.get('next_review', now)
+    )[:30]
+    for r in upcoming:
+        char = r.get('character', '')
+        cat  = r.get('category', 'HSK1')
+        r['pinyin']  = HSK_CHARACTERS.get(cat, {}).get(char, {}).get('pinyin', '')
+        r['meaning'] = HSK_CHARACTERS.get(cat, {}).get(char, {}).get('meaning', '')
+        nr = r.get('next_review', now)
+        r['overdue'] = nr <= now
+        r['next_review_str'] = nr.strftime('%d.%m.%Y') if hasattr(nr, 'strftime') else str(nr)
+
+    # Суммарный SM-2 по всем категориям (для сводной карточки)
+    sm2_total = {
+        'studied':       sum(v['studied']   for v in sm2_stats.values()),
+        'mastered':      sum(v['mastered']  for v in sm2_stats.values()),
+        'due_today':     sum(v['due_today'] for v in sm2_stats.values()),
+        'total_answers': sum(v['total_answers'] for v in sm2_stats.values()),
+    }
 
     return render(request, 'stats.html', {
-        'sessions': sessions,
-        'stats': stats
+        'sessions':   sessions,
+        'test_stats': test_stats,           # переименовано из stats → test_stats
+        'sm2_stats':  sm2_stats,
+        'sm2_total':  sm2_total,
+        'upcoming':   upcoming,
     })
 
 @login_required
