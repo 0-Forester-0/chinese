@@ -23,7 +23,7 @@ HSK_CHARACTERS = {
 }
 
 HSK_WORDS_COUNT = {
-    'HSK1': 151,
+    'HSK1': 496,
     'HSK2': 250,
     'HSK3': 762
 }
