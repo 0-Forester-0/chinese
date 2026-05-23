@@ -25,7 +25,7 @@ HSK_CHARACTERS = {
 HSK_WORDS_COUNT = {
     'HSK1': 496,
     'HSK2': 764,
-    'HSK3': 762
+    'HSK3': 966
 }
 
 def remove_tones(pinyin_str):
