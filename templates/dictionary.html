@@ -1,130 +1,143 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script>{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    <div class="container mt-5">
-        <h1 class="card-title display-4">Словарь HSK</h1>
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h2 class="card-title">Поиск слова</h2>
-                <div class="mb-3">
-                    <input type="text" id="search-input" class="form-control" placeholder="Введите пиньинь или перевод на русском (например, 'nǐ hǎo' или 'привет')" autofocus>
-                </div>
-                <div id="search-results">
-                    <table class="table table-striped" id="results-table" style="display: none;">
-                        <thead>
-                            <tr>
-                                <th>Иероглиф</th>
-                                <th>Пиньинь</th>
-                                <th>Перевод</th>
-                                <th>Категория</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-body"></tbody>
-                    </table>
-                    <div id="no-results" class="alert alert-info" style="display: none;">
-                        Ничего не найдено. Попробуйте другой запрос.
-                    </div>
-                </div>
-                <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Вернуться на главную</a>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-5">
+    <div>
+        <h1 class="page-title">Словарь HSK</h1>
+        <p class="page-subtitle">HSK 1–3 · {{ hsk_count|default:"2 226" }} слов</p>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card mb-4" style="max-width:720px;">
+    <div class="card-body" style="padding:20px;">
+        <div class="position-relative">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"
+                 style="position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none;">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="search-input" class="form-control"
+                   placeholder="Пиньинь (niháo) или перевод на русском..."
+                   style="padding-left:42px; padding-right:42px; height:48px; font-size:0.95rem;"
+                   autofocus>
+            <div id="search-clear" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);" onclick="clearSearch()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             </div>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; margin-bottom:0;">
+            Введите минимум 2 символа для поиска
+        </p>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="search-results" style="max-width:720px;">
+
+    <!-- Empty state -->
+    <div id="empty-state" style="text-align:center; padding:48px 24px; color:var(--text-muted);">
+        <div style="font-family:'Noto Serif SC',serif; font-size:3rem; color:var(--paper-border); margin-bottom:12px;">搜</div>
+        <p style="font-size:0.9rem;">Начните вводить слово для поиска</p>
+    </div>
+
+    <!-- Table -->
+    <div id="results-table-wrap" style="display:none;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <span id="results-count" style="font-size:0.78rem; color:var(--text-muted);"></span>
+        </div>
+        <div style="border:1px solid var(--paper-border); border-radius:var(--radius-lg); overflow:hidden;">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:80px;">Слово</th>
+                        <th>Пиньинь</th>
+                        <th>Перевод</th>
+                        <th style="width:80px;">Уровень</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+            </table>
         </div>
     </div>
 
-    <script>
-        const searchInput = document.getElementById('search-input');
-        const resultsTable = document.getElementById('results-table');
-        const resultsBody = document.getElementById('results-body');
-        const noResults = document.getElementById('no-results');
+    <!-- No results -->
+    <div id="no-results" style="display:none; text-align:center; padding:48px 24px;">
+        <div style="font-size:2rem; margin-bottom:12px;">🔍</div>
+        <p style="color:var(--text-muted); font-size:0.9rem;">Ничего не найдено. Попробуйте другой запрос.</p>
+    </div>
 
-        searchInput.addEventListener('input', async () => {
-            const query = searchInput.value.trim();
-            if (query.length < 2) {
-                resultsTable.style.display = 'none';
+</div>
+
+<script>
+    const searchInput = document.getElementById('search-input');
+    const resultsTableWrap = document.getElementById('results-table-wrap');
+    const resultsBody = document.getElementById('results-body');
+    const noResults = document.getElementById('no-results');
+    const emptyState = document.getElementById('empty-state');
+    const searchClear = document.getElementById('search-clear');
+    const resultsCount = document.getElementById('results-count');
+
+    let searchTimeout;
+
+    function clearSearch() {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        resultsTableWrap.style.display = 'none';
+        noResults.style.display = 'none';
+        emptyState.style.display = '';
+        resultsBody.innerHTML = '';
+    }
+
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim();
+        searchClear.style.display = q ? 'block' : 'none';
+
+        clearTimeout(searchTimeout);
+        if (q.length < 2) {
+            resultsTableWrap.style.display = 'none';
+            noResults.style.display = 'none';
+            emptyState.style.display = '';
+            return;
+        }
+
+        searchTimeout = setTimeout(() => doSearch(q), 250);
+    });
+
+    async function doSearch(query) {
+        try {
+            const resp = await fetch("{% url 'dictionary_search' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ query })
+            });
+            if (!resp.ok) return;
+            const results = await resp.json();
+
+            resultsBody.innerHTML = '';
+            emptyState.style.display = 'none';
+
+            if (results.length > 0) {
+                resultsTableWrap.style.display = '';
                 noResults.style.display = 'none';
-                resultsBody.innerHTML = '';
-                return;
-            }
+                resultsCount.textContent = `Найдено: ${results.length}`;
 
-            try {
-                const response = await fetch("{% url 'dictionary_search' %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ query: query })
+                results.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-family:'Noto Serif SC',serif; font-size:1.6rem; color:var(--ink); padding:10px 16px;">${r.character}</td>
+                        <td style="color:var(--text-muted); font-size:0.875rem;">${r.pinyin}</td>
+                        <td style="font-size:0.875rem;">${r.meaning}</td>
+                        <td><span class="badge bg-secondary">${r.category}</span></td>
+                    `;
+                    resultsBody.appendChild(tr);
                 });
-
-                if (!response.ok) {
-                    console.error('Failed to fetch search results:', response.status);
-                    return;
-                }
-
-                const results = await response.json();
-                console.log('Search results:', results);
-
-                resultsBody.innerHTML = '';
-                if (results.length > 0) {
-                    resultsTable.style.display = 'table';
-                    noResults.style.display = 'none';
-                    results.forEach(result => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${result.character}</td>
-                            <td>${result.pinyin}</td>
-                            <td>${result.meaning}</td>
-                            <td>${result.category}</td>
-                        `;
-                        resultsBody.appendChild(row);
-                    });
-                } else {
-                    resultsTable.style.display = 'none';
-                    noResults.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Fetch error:', error);
+            } else {
+                resultsTableWrap.style.display = 'none';
                 noResults.style.display = 'block';
-                noResults.textContent = 'Ошибка при поиске. Попробуйте снова.';
             }
-        });
-    </script>
+        } catch(e) {
+            console.error(e);
+        }
+    }
+</script>
 {% endblock %}
