@@ -1,101 +1,177 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<div class="container mt-5">
-    <h1 class="card-title display-4">Изучение иероглифов</h1>
-    <div class="card shadow-sm">
-        <div class="card-header bg-success text-white">
-            <h2 class="card-title mb-0">Настройка сессии</h2>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-4">
-                Алгоритм интервального повторения SM-2 автоматически подберёт карточки,
-                которые пора повторить, и новые иероглифы. Оцените, насколько хорошо вы
-                знаете каждое слово — система сама назначит следующую дату повторения.
-            </p>
+
+<div class="row justify-content-center">
+<div class="col-12 col-md-9 col-lg-7">
+
+    <!-- Header -->
+    <div class="mb-5">
+        <h1 class="page-title">Изучение иероглифов</h1>
+        <p class="page-subtitle">Алгоритм SM-2 подберёт карточки, которые пора повторить</p>
+    </div>
+
+    <!-- Config card -->
+    <div class="card mb-4">
+        <div class="card-body" style="padding:28px;">
             <form method="post">
                 {% csrf_token %}
-                <div class="mb-3">
-                    <label for="category" class="form-label fw-bold">Уровень HSK</label>
-                    <select class="form-select" id="category" name="category">
+
+                <!-- Category -->
+                <div class="mb-4">
+                    <label class="form-label">Уровень HSK</label>
+                    <div class="d-flex gap-2 flex-wrap" id="category-pills">
+                        {% for cat in categories %}
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="category" value="{{ cat }}" id="cat-{{ cat }}"
+                                   {% if forloop.first %}checked{% endif %}
+                                   class="d-none cat-radio">
+                            <span class="category-pill" data-cat="{{ cat }}">{{ cat }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <!-- Hidden select for form submission -->
+                    <select name="category" id="category" class="d-none">
                         {% for cat in categories %}
                             <option value="{{ cat }}">{{ cat }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label for="count" class="form-label fw-bold">Количество карточек за сессию</label>
-                    <input type="number" class="form-control" id="count" name="count"
-                           value="20" min="5" max="100">
-                    <div class="form-text">Рекомендуем 10–30 карточек за одну сессию.</div>
+
+                <!-- Count -->
+                <div class="mb-4">
+                    <label class="form-label" for="count">Карточек за сессию</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="range" class="form-range flex-grow-1" id="count-range"
+                               min="5" max="100" step="5" value="20"
+                               style="accent-color: var(--ink);">
+                        <input type="number" class="form-control" name="count" id="count"
+                               value="20" min="5" max="100"
+                               style="width:80px; text-align:center;">
+                    </div>
+                    <div class="form-text">Рекомендуем 10–30 карточек за одну сессию</div>
                 </div>
 
-                <!-- Статистика готовых к повторению -->
-                <div id="due-stats" class="alert alert-info" style="display:none;">
-                    <span id="due-text"></span>
+                <!-- Due stats -->
+                <div id="due-stats" class="p-3 mb-4 rounded-xl d-none"
+                     style="background:var(--paper-warm); border:1px solid var(--paper-border);">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <div style="font-size:1.4rem; font-weight:700; color:var(--vermillion);" id="due-count">—</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">К повторению сегодня</div>
+                        </div>
+                        <div>
+                            <div style="font-size:1.4rem; font-weight:700; color:var(--ink);" id="new-count">—</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Новых слов</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="d-flex gap-2 mt-4">
-                    <button type="submit" class="btn btn-success px-4">Начать изучение</button>
-                    <a href="{% url 'home' %}" class="btn btn-secondary">Назад</a>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-lg px-5">
+                        Начать
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ms-2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </button>
+                    <a href="{% url 'home' %}" class="btn btn-secondary btn-lg">Назад</a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Подсказка по оценкам -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">Как работают оценки?</h5>
-        </div>
-        <div class="card-body">
-            <div class="row text-center">
+    <!-- Rating guide -->
+    <div class="card">
+        <div class="card-body" style="padding:20px;">
+            <h6 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:16px;">
+                Система оценок
+            </h6>
+            <div class="row g-3">
                 <div class="col-4">
-                    <div class="p-3 rounded bg-danger text-white mb-2">
-                        <strong>Не знаю</strong>
+                    <div style="padding:12px; text-align:center; background:#fff1ee; border-radius:var(--radius-md); border:1px solid #fecaca;">
+                        <div style="font-size:1.3rem; margin-bottom:4px;">😰</div>
+                        <div style="font-size:0.8rem; font-weight:600; color:var(--vermillion); margin-bottom:2px;">Не знаю</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Вернётся завтра</div>
                     </div>
-                    <small class="text-muted">Карточка вернётся<br>уже завтра</small>
                 </div>
                 <div class="col-4">
-                    <div class="p-3 rounded bg-warning mb-2">
-                        <strong>С трудом</strong>
+                    <div style="padding:12px; text-align:center; background:#fffbeb; border-radius:var(--radius-md); border:1px solid #fde68a;">
+                        <div style="font-size:1.3rem; margin-bottom:4px;">🤔</div>
+                        <div style="font-size:0.8rem; font-weight:600; color:var(--gold); margin-bottom:2px;">С трудом</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Через несколько дней</div>
                     </div>
-                    <small class="text-muted">Повторение через<br>несколько дней</small>
                 </div>
                 <div class="col-4">
-                    <div class="p-3 rounded bg-success text-white mb-2">
-                        <strong>Легко</strong>
+                    <div style="padding:12px; text-align:center; background:#f0fdf4; border-radius:var(--radius-md); border:1px solid #bbf7d0;">
+                        <div style="font-size:1.3rem; margin-bottom:4px;">😊</div>
+                        <div style="font-size:0.8rem; font-weight:600; color:#1e5738; margin-bottom:2px;">Легко</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">Интервал растёт</div>
                     </div>
-                    <small class="text-muted">Интервал увеличится<br>значительно</small>
                 </div>
             </div>
         </div>
     </div>
+
+</div>
 </div>
 
-<script>
-    const categorySelect = document.getElementById('category');
-    const dueStats = document.getElementById('due-stats');
-    const dueText = document.getElementById('due-text');
+<style>
+    .category-pill {
+        display: inline-block;
+        padding: 8px 20px;
+        background: var(--surface);
+        border: 1.5px solid var(--paper-border);
+        border-radius: 100px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: var(--transition);
+        user-select: none;
+    }
+    .category-pill:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+        background: var(--paper-warm);
+    }
+    .cat-radio:checked + .category-pill {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: #fff;
+    }
+    .form-range { cursor: pointer; }
+</style>
 
-    async function loadDueStats() {
-        const category = categorySelect.value;
+<script>
+    // Sync range and number inputs
+    const countRange = document.getElementById('count-range');
+    const countInput = document.getElementById('count');
+    countRange.addEventListener('input', () => countInput.value = countRange.value);
+    countInput.addEventListener('input', () => countRange.value = countInput.value);
+
+    // Category pill sync with hidden select
+    const catSelect = document.getElementById('category');
+    document.querySelectorAll('.cat-radio').forEach(radio => {
+        radio.addEventListener('change', () => {
+            catSelect.value = radio.value;
+            loadDueStats(radio.value);
+        });
+    });
+
+    async function loadDueStats(category) {
+        const el = document.getElementById('due-stats');
         try {
             const resp = await fetch(`/study/due-count/?category=${category}`, {
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' }
             });
             if (resp.ok) {
                 const data = await resp.json();
-                dueStats.style.display = 'block';
-                dueText.textContent =
-                    `Для повторения сегодня: ${data.due} карточек · Новых: ${data.new_count} карточек`;
+                document.getElementById('due-count').textContent = data.due;
+                document.getElementById('new-count').textContent = data.new_count;
+                el.classList.remove('d-none');
             }
-        } catch (e) {
-            dueStats.style.display = 'none';
-        }
+        } catch(e) { el.classList.add('d-none'); }
     }
 
-    categorySelect.addEventListener('change', loadDueStats);
-    loadDueStats();
+    // Load on init
+    const defaultCat = document.querySelector('.cat-radio:checked');
+    if (defaultCat) loadDueStats(defaultCat.value);
 </script>
 {% endblock %}
