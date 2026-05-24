@@ -1,83 +1,274 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0">{{ category }} — Изучение</h2>
-        <button id="btn-end" class="btn btn-outline-danger btn-sm">Завершить сессию</button>
-    </div>
 
-    <!-- Прогресс-бар -->
-    <div class="progress mb-4" style="height: 8px;">
-        <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
-    </div>
-    <div class="text-muted small mb-3 text-center">
-        Карточка <span id="current-num">1</span> из <span id="total-num">{{ count }}</span>
-        &nbsp;|&nbsp; Правильно: <span id="correct-count">0</span>
-    </div>
+<style>
+    .flashcard {
+        background: var(--surface);
+        border: 1px solid var(--paper-border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        min-height: 340px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
 
-    <!-- Основная область карточки -->
-    <div id="study-area" class="card shadow-sm" style="min-height: 320px;">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
+    .flashcard::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--vermillion) 0%, var(--gold) 100%);
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
 
-            <!-- Состояние 1: вопрос -->
-            <div id="state-question">
-                <div class="badge mb-2" id="card-badge" style="font-size:0.85rem;"></div>
-                <h1 id="card-character" class="display-1 fw-bold my-3" style="font-size:5rem;"></h1>
-                <p class="text-muted mb-4" id="card-category-label"></p>
-                <button id="btn-show" class="btn btn-primary btn-lg px-5">
+    .flashcard-character {
+        font-family: 'Noto Serif SC', serif;
+        font-size: 6rem;
+        line-height: 1;
+        color: var(--ink);
+        text-align: center;
+        margin: 8px 0 4px;
+        transition: all 0.3s ease;
+        cursor: default;
+        user-select: none;
+    }
+
+    @media (max-width: 576px) {
+        .flashcard-character { font-size: 4.5rem; }
+        .flashcard { min-height: 280px; }
+    }
+
+    .pinyin-display {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        text-align: center;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+    }
+
+    .meaning-display {
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .rating-section {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .rating-btn-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .rating-btn {
+        border-radius: var(--radius-md) !important;
+        padding: 14px 24px !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        min-width: 120px;
+    }
+
+    .rating-btn:hover:not(:disabled) {
+        transform: translateY(-3px) !important;
+        box-shadow: var(--shadow-md) !important;
+    }
+
+    .rating-btn:disabled { opacity: 0.4; transform: none !important; }
+
+    .rating-key {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .progress-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .card-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 100px;
+        letter-spacing: 0.04em;
+    }
+
+    .badge-new { background: #eff8ff; color: #1e40af; }
+    .badge-review { background: var(--paper-warm); color: var(--text-secondary); }
+
+    .feedback-msg {
+        min-height: 28px;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        padding: 6px 16px;
+        transition: all 0.3s ease;
+    }
+
+    .done-screen {
+        text-align: center;
+        padding: 48px 24px;
+    }
+
+    .done-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    /* Divider */
+    .answer-divider {
+        border: none;
+        border-top: 1.5px solid var(--paper-border);
+        margin: 20px 0;
+    }
+</style>
+
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">{{ category }}</h1>
+        <p class="page-subtitle">Интервальное повторение — SM-2</p>
+    </div>
+    <button id="btn-end" class="btn btn-outline-danger">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+        Завершить
+    </button>
+</div>
+
+<!-- ── PROGRESS ────────────────────────────────────────────────── -->
+<div class="mb-4">
+    <div class="progress-header">
+        <div class="flex-grow-1">
+            <div class="progress" style="height: 6px;">
+                <div id="progress-bar" class="progress-bar" style="width: 0%; background: linear-gradient(90deg, var(--vermillion), var(--gold));"></div>
+            </div>
+        </div>
+        <span style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap; font-weight:500;">
+            <span id="current-num">1</span> / <span id="total-num">{{ count }}</span>
+        </span>
+    </div>
+    <div class="d-flex gap-3 mt-2" style="font-size:0.78rem; color:var(--text-muted);">
+        <span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1e5738" stroke-width="2" class="me-1"><path d="m9 12 2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+            Правильно: <strong style="color:var(--text-primary);" id="correct-count">0</strong>
+        </span>
+    </div>
+</div>
+
+<!-- ── FLASHCARD ────────────────────────────────────────────────── -->
+<div id="study-area">
+    <div class="flashcard">
+        <div class="p-4 d-flex flex-column align-items-center justify-content-center h-100" style="min-height:340px;">
+
+            <!-- Question state -->
+            <div id="state-question" class="w-100 text-center">
+                <div class="mb-3">
+                    <span id="card-badge" class="card-badge badge-new">✨ Новое слово</span>
+                </div>
+                <div class="flashcard-character" id="card-character"></div>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; margin-bottom:32px;">
+                    {{ category }}
+                </p>
+                <button id="btn-show" class="btn btn-primary" style="padding:12px 40px; font-size:0.9rem;">
                     Показать перевод
                 </button>
-                <p class="text-muted small mt-3">или нажмите <kbd>Пробел</kbd></p>
+                <p style="font-size:0.72rem; color:var(--text-muted); margin-top:12px;">
+                    или нажмите <kbd>Пробел</kbd>
+                </p>
             </div>
 
-            <!-- Состояние 2: ответ + оценка -->
-            <div id="state-answer" style="display:none; width:100%;">
-                <h2 id="ans-character" class="display-2 fw-bold mb-1" style="font-size:4rem;"></h2>
-                <p id="ans-pinyin" class="fs-4 text-secondary mb-1"></p>
-                <p id="ans-meaning" class="fs-3 fw-semibold mb-4"></p>
-                <hr class="w-75 mx-auto mb-4">
-                <p class="mb-3 text-muted">Насколько хорошо вы знали это слово?</p>
-                <div class="d-flex justify-content-center gap-3 flex-wrap">
-                    <button class="btn btn-danger btn-lg px-4 rating-btn" data-quality="0">
-                        😰 Не знаю
-                    </button>
-                    <button class="btn btn-warning btn-lg px-4 rating-btn" data-quality="3">
-                        🤔 С трудом
-                    </button>
-                    <button class="btn btn-success btn-lg px-4 rating-btn" data-quality="5">
-                        😊 Легко
-                    </button>
+            <!-- Answer state -->
+            <div id="state-answer" style="display:none; width:100%;" class="text-center">
+                <div class="flashcard-character" id="ans-character" style="font-size:4rem;"></div>
+                <p class="pinyin-display" id="ans-pinyin"></p>
+                <hr class="answer-divider" style="width:60%; margin: 16px auto;">
+                <p class="meaning-display mb-4" id="ans-meaning"></p>
+
+                <div class="rating-section mb-3">
+                    <div class="rating-btn-group">
+                        <button class="btn btn-danger rating-btn" data-quality="0">
+                            😰 Не знаю
+                        </button>
+                        <span class="rating-key">клавиша 1</span>
+                    </div>
+                    <div class="rating-btn-group">
+                        <button class="btn btn-warning rating-btn" data-quality="3">
+                            🤔 С трудом
+                        </button>
+                        <span class="rating-key">клавиша 2</span>
+                    </div>
+                    <div class="rating-btn-group">
+                        <button class="btn btn-success rating-btn" data-quality="5">
+                            😊 Легко
+                        </button>
+                        <span class="rating-key">клавиша 3</span>
+                    </div>
                 </div>
-                <div id="answer-feedback" class="mt-3" style="min-height:28px;"></div>
-            </div>
 
-        </div>
-    </div>
-
-    <!-- Итоговый экран -->
-    <div id="state-done" class="card shadow-sm text-center" style="display:none; min-height:280px;">
-        <div class="card-body d-flex flex-column align-items-center justify-content-center p-5">
-            <div class="display-1 mb-3">🎉</div>
-            <h2 class="mb-3">Сессия завершена!</h2>
-            <p class="fs-5 mb-1">Изучено карточек: <strong id="done-total"></strong></p>
-            <p class="fs-5 mb-4">Правильных ответов: <strong id="done-correct"></strong>
-                (<span id="done-pct"></span>%)</p>
-            <div class="d-flex gap-3 flex-wrap justify-content-center">
-                <a href="{% url 'study_select' %}" class="btn btn-success btn-lg">Ещё одна сессия</a>
-                <a href="{% url 'home' %}" class="btn btn-secondary btn-lg">На главную</a>
+                <div id="answer-feedback" class="feedback-msg"></div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .rating-btn:hover { transform: translateY(-2px); transition: transform 0.15s; }
-    @media (max-width: 576px) {
-        #card-character { font-size: 3.5rem !important; }
-        #ans-character  { font-size: 3rem !important; }
-    }
-</style>
+<!-- ── DONE SCREEN ──────────────────────────────────────────────── -->
+<div id="state-done" class="card" style="display:none;">
+    <div class="card-body done-screen">
+        <span class="done-icon">🎉</span>
+        <h2 style="font-size:1.6rem; margin-bottom:8px;">Сессия завершена!</h2>
+        <p class="text-muted mb-4">Отличная работа — продолжайте в том же духе</p>
+
+        <div class="row g-3 justify-content-center mb-4" style="max-width:400px; margin:0 auto 24px;">
+            <div class="col-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number" style="color:var(--ink);" id="done-total">—</div>
+                    <div class="stat-label">Карточек</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-card text-center">
+                    <div class="stat-number" style="color:#1e5738;" id="done-pct">—</div>
+                    <div class="stat-label">Точность %</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <a href="{% url 'study_select' %}" class="btn btn-success btn-lg">Ещё сессия</a>
+            <a href="{% url 'home' %}" class="btn btn-secondary btn-lg">На главную</a>
+        </div>
+    </div>
+</div>
+
+<!-- ── HOW-TO TIP ────────────────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-3 mt-4 p-3" style="background:var(--surface-raised); border-radius:var(--radius-md); border:1px solid var(--paper-border);">
+    <div style="font-size:1.1rem;">💡</div>
+    <p style="font-size:0.78rem; color:var(--text-muted); margin:0; line-height:1.5;">
+        <strong style="color:var(--text-secondary);">Совет:</strong>
+        Оценивайте честно — алгоритм адаптируется под вас.
+        Не знаете слово? Скажите «Не знаю» — карточка вернётся завтра.
+    </p>
+</div>
 
 <script>
     const cards = {{ cards_json|safe }};
@@ -88,7 +279,6 @@
     let correctCount = 0;
     const total = cards.length;
 
-    // DOM refs
     const stateQ    = document.getElementById('state-question');
     const stateA    = document.getElementById('state-answer');
     const stateDone = document.getElementById('state-done');
@@ -103,24 +293,20 @@
     }
 
     function showCard(card) {
-        // Badge: новая или повторение
         const badge = document.getElementById('card-badge');
         if (card.is_new) {
-            badge.className = 'badge bg-primary mb-2';
+            badge.className = 'card-badge badge-new';
             badge.textContent = '✨ Новое слово';
         } else {
-            badge.className = 'badge bg-secondary mb-2';
+            badge.className = 'card-badge badge-review';
             badge.textContent = '🔁 Повторение';
         }
-
         document.getElementById('card-character').textContent = card.character;
-        document.getElementById('card-category-label').textContent = category;
-
-        // Answer side
         document.getElementById('ans-character').textContent = card.character;
         document.getElementById('ans-pinyin').textContent    = card.pinyin;
         document.getElementById('ans-meaning').textContent   = card.meaning;
         document.getElementById('answer-feedback').textContent = '';
+        document.getElementById('answer-feedback').className = 'feedback-msg';
 
         stateQ.style.display = '';
         stateA.style.display = 'none';
@@ -137,44 +323,39 @@
         const isCorrect = quality >= 3;
         if (isCorrect) correctCount++;
 
-        // Visual feedback
         const fb = document.getElementById('answer-feedback');
         if (quality === 5) {
-            fb.innerHTML = '<span class="text-success">✔ Отлично! Следующий показ через несколько дней.</span>';
+            fb.className = 'feedback-msg';
+            fb.style.background = '#f0fdf4';
+            fb.style.color = '#14532d';
+            fb.textContent = '✔ Отлично! Следующий показ через несколько дней.';
         } else if (quality === 3) {
-            fb.innerHTML = '<span class="text-warning">⚡ Неплохо. Повторим скоро.</span>';
+            fb.className = 'feedback-msg';
+            fb.style.background = '#fffbeb';
+            fb.style.color = '#78350f';
+            fb.textContent = '⚡ Неплохо. Повторим скоро.';
         } else {
-            fb.innerHTML = '<span class="text-danger">✖ Запомним — карточка вернётся завтра.</span>';
+            fb.className = 'feedback-msg';
+            fb.style.background = '#fff1ee';
+            fb.style.color = '#7f1d1d';
+            fb.textContent = '✖ Запомним — карточка вернётся завтра.';
         }
 
-        // Disable rating buttons
         document.querySelectorAll('.rating-btn').forEach(b => b.disabled = true);
 
-        // Save to server
         try {
             await fetch('/study/answer/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': CSRF
-                },
-                body: JSON.stringify({
-                    character: card.character,
-                    category: category,
-                    quality: quality
-                })
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ character: card.character, category, quality })
             });
-        } catch(e) {
-            console.error('Failed to save rating:', e);
-        }
+        } catch(e) { console.error(e); }
 
-        // Pause then advance
         setTimeout(() => {
             idx++;
             if (idx >= total) {
                 showDone();
             } else {
-                // Re-enable buttons
                 document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
                 showCard(cards[idx]);
             }
@@ -184,30 +365,23 @@
     function showDone() {
         studyArea.style.display = 'none';
         stateDone.style.display = '';
-        document.getElementById('done-total').textContent   = total;
-        document.getElementById('done-correct').textContent = correctCount;
+        document.getElementById('done-total').textContent = total;
         document.getElementById('done-pct').textContent =
-            total > 0 ? Math.round((correctCount / total) * 100) : 0;
+            total > 0 ? Math.round((correctCount / total) * 100) + '%' : '0%';
         pBar.style.width = '100%';
         document.getElementById('current-num').textContent = total;
     }
 
-    // Event listeners
     document.getElementById('btn-show').addEventListener('click', revealAnswer);
-
     document.querySelectorAll('.rating-btn').forEach(btn => {
         btn.addEventListener('click', () => submitRating(parseInt(btn.dataset.quality)));
     });
-
     document.getElementById('btn-end').addEventListener('click', () => {
         if (confirm('Завершить сессию досрочно?')) showDone();
     });
-
-    // Keyboard: Space to reveal, 1/2/3 for ratings
     document.addEventListener('keydown', e => {
         if (e.code === 'Space' && stateQ.style.display !== 'none') {
-            e.preventDefault();
-            revealAnswer();
+            e.preventDefault(); revealAnswer();
         }
         if (stateA.style.display !== 'none') {
             if (e.key === '1') submitRating(0);
@@ -216,16 +390,14 @@
         }
     });
 
-    // Init
     if (total > 0) {
         document.getElementById('total-num').textContent = total;
         showCard(cards[0]);
     } else {
-        studyArea.innerHTML = `
-            <div class="card-body text-center p-5">
-                <p class="fs-5">Нет карточек для изучения в этой категории.</p>
-                <a href="{% url 'study_select' %}" class="btn btn-success">Назад</a>
-            </div>`;
+        studyArea.innerHTML = `<div class="card text-center p-5">
+            <p class="fs-5 text-muted mb-3">Нет карточек для изучения в этой категории.</p>
+            <a href="{% url 'study_select' %}" class="btn btn-success">Назад</a>
+        </div>`;
     }
 </script>
 {% endblock %}
