@@ -1,239 +1,324 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-    <div class="container mt-5">
-        <h1 class="card-title display-4 text-break">{{ category }}</h1>
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-sm-row gap-2 mb-3 align-items-stretch">
-                    <a href="{% url 'home' %}" class="btn btn-secondary flex-fill custom-btn-width">
-                        Вернуться к карточкам
-                    </a>
-                    <button id="finish-session" class="btn btn-danger flex-fill custom-btn-width">
-                        Завершить сессию
-                    </button>
-                </div>
-                <div id="game-area">
-                    <div class="character-center">
-                        <h2 id="card-character" class="character-large text-break mb-2"></h2>
-                        <div class="pinyin-text mb-4">
-                            Пиньинь: <span id="card-pinyin"></span>
-                        </div>
-                    </div>
-                    <div id="options" class="d-grid gap-2"></div>
-                    <div id="feedback" class="alert" style="display: none;"></div>
-                    <button id="next-card" class="btn btn-primary mt-3 w-100 w-sm-auto" style="display: none;">Следующая карточка</button>
-                    <div id="stats" class="mt-3">
-                        Правильных ответов: <span id="correct-answers">{{ correct_answers }}</span>/<span id="total-cards">{{ total_cards_in_category }}</span><br>
-                        Процент: <span id="percentage">{{ percentage|floatformat:1 }}</span>%
-                    </div>
-                </div>
+
+<style>
+    .quiz-character {
+        font-family: 'Noto Serif SC', serif;
+        font-size: 5.5rem;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1;
+        text-align: center;
+        user-select: none;
+    }
+
+    @media (max-width: 576px) {
+        .quiz-character { font-size: 4rem; }
+    }
+
+    .quiz-pinyin {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 1rem;
+        letter-spacing: 0.04em;
+    }
+
+    .option-btn {
+        width: 100%;
+        text-align: left;
+        background: var(--surface);
+        border: 1.5px solid var(--paper-border);
+        border-radius: var(--radius-md) !important;
+        padding: 14px 18px !important;
+        font-size: 0.9rem !important;
+        color: var(--text-primary);
+        font-weight: 400;
+        transition: all 0.2s ease !important;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .option-btn::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 3px;
+        background: transparent;
+        transition: background 0.2s;
+    }
+
+    .option-btn:hover:not(:disabled) {
+        border-color: var(--ink);
+        background: var(--paper-warm);
+        transform: translateX(4px);
+    }
+    .option-btn:hover:not(:disabled)::before { background: var(--ink); }
+
+    .option-btn.correct {
+        border-color: #1e5738 !important;
+        background: #f0fdf4 !important;
+        color: #14532d !important;
+        font-weight: 600;
+    }
+    .option-btn.correct::before { background: #1e5738 !important; }
+
+    .option-btn.wrong {
+        border-color: var(--vermillion) !important;
+        background: #fff1ee !important;
+        color: var(--vermillion-dark) !important;
+    }
+    .option-btn.wrong::before { background: var(--vermillion) !important; }
+
+    .option-btn:disabled { opacity: 0.6; transform: none !important; }
+
+    .score-display {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 12px 16px;
+        background: var(--surface-raised);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--paper-border);
+    }
+
+    .score-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .score-num {
+        font-size: 1.4rem;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--ink);
+    }
+
+    .score-lbl {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 2px;
+    }
+
+    .score-divider {
+        width: 1px;
+        height: 32px;
+        background: var(--paper-border);
+    }
+</style>
+
+<!-- Header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Тест — {{ category }}</h1>
+        <p class="page-subtitle">Выберите правильный перевод</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'home' %}" class="btn btn-secondary">← Главная</a>
+        <button id="finish-session" class="btn btn-outline-danger">Завершить</button>
+    </div>
+</div>
+
+<!-- Progress -->
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span style="font-size:0.78rem; color:var(--text-muted);">Прогресс</span>
+        <span style="font-size:0.78rem; color:var(--text-muted);">
+            Пройдено: <strong style="color:var(--text-primary);" id="answered-count">0</strong>
+            / {{ total_cards_in_category }}
+        </span>
+    </div>
+    <div class="progress" style="height:5px;">
+        <div class="progress-bar" id="quiz-progress-bar" style="width:0%; background:linear-gradient(90deg, var(--ink), var(--ink-soft));"></div>
+    </div>
+</div>
+
+<!-- Quiz card -->
+<div class="card" id="game-area" style="max-width:640px; margin:0 auto;">
+    <div class="card-body" style="padding:32px 28px;">
+
+        <!-- Character display -->
+        <div class="mb-4 py-2">
+            <div class="quiz-character" id="card-character"></div>
+            <p class="quiz-pinyin mt-2" id="card-pinyin"></p>
+        </div>
+
+        <!-- Options grid -->
+        <div id="options" class="d-flex flex-column gap-2 mb-4"></div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="alert" style="display:none; margin:0;"></div>
+
+        <!-- Next button -->
+        <button id="next-card" class="btn btn-primary w-100 mt-3" style="display:none; padding:12px;">
+            Следующая карточка
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ms-2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <!-- Score -->
+        <div class="score-display mt-4">
+            <div class="score-item">
+                <span class="score-num" id="correct-answers">{{ correct_answers }}</span>
+                <span class="score-lbl">Правильных</span>
+            </div>
+            <div class="score-divider"></div>
+            <div class="score-item">
+                <span class="score-num" id="total-cards">{{ total_cards_in_category }}</span>
+                <span class="score-lbl">Всего слов</span>
+            </div>
+            <div class="score-divider"></div>
+            <div class="score-item">
+                <span class="score-num" id="percentage">{{ percentage|floatformat:1 }}</span>
+                <span class="score-lbl">Результат %</span>
             </div>
         </div>
     </div>
+</div>
 
-    <style>
-        /* Кнопки */
-        @media (min-width: 576px) {
-            .custom-btn-width {
-                max-width: 240px;
-            }
+<!-- Keyboard tip -->
+<p style="text-align:center; font-size:0.72rem; color:var(--text-muted); margin-top:12px;">
+    <kbd>Enter</kbd> — следующая карточка
+</p>
+
+<script>
+    const cards = {{ cards_json|safe }};
+    let remainingCards = {{ remaining_cards|safe }};
+    const sessionId = "{{ session_id }}";
+    let currentCard = null;
+    let answerSelected = false;
+    let answerHistory = {};
+    const totalCards = parseInt(document.getElementById('total-cards').textContent);
+    const totalAll = {{ total_cards_in_category }};
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
-        /* Центрирование иероглифа и пиньиня */
-        .character-center {
-            text-align: center;
-            margin-bottom: 1.5rem;
+        return array;
+    }
+
+    function selectRandomCard() {
+        if (remainingCards.length === 0) { endGame(); return null; }
+        const idx = Math.floor(Math.random() * remainingCards.length);
+        const char = remainingCards[idx];
+        remainingCards.splice(idx, 1);
+        return cards.find(c => c.character === char);
+    }
+
+    function generateOptions(card) {
+        const opts = [card.meaning];
+        const others = cards.map(c => c.meaning).filter(m => m !== card.meaning);
+        return shuffle([...opts, ...shuffle(others).slice(0, 3)]);
+    }
+
+    function updateProgressBar() {
+        const answered = totalAll - remainingCards.length;
+        document.getElementById('answered-count').textContent = answered;
+        const pct = (answered / totalAll) * 100;
+        document.getElementById('quiz-progress-bar').style.width = pct + '%';
+    }
+
+    function displayCard() {
+        currentCard = selectRandomCard();
+        if (!currentCard) return;
+
+        answerSelected = false;
+        document.getElementById('card-character').textContent = currentCard.character;
+        document.getElementById('card-pinyin').textContent = currentCard.pinyin;
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+
+        generateOptions(currentCard).forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn option-btn';
+            btn.textContent = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsDiv.appendChild(btn);
+        });
+
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('next-card').style.display = 'none';
+        updateProgressBar();
+    }
+
+    function checkAnswer(selected, clickedBtn) {
+        if (answerSelected) return;
+        answerSelected = true;
+
+        const feedback = document.getElementById('feedback');
+        const correctCount = parseInt(document.getElementById('correct-answers').textContent);
+
+        if (!answerHistory[currentCard.character]) {
+            answerHistory[currentCard.character] = { correct: 0, total: 0 };
         }
-        .character-large {
-            font-size: 4rem;
-            font-weight: 600;
-            line-height: 1.1;
-        }
-        @media (max-width: 576px) {
-            .character-large {
-                font-size: 2.5rem;
-            }
-        }
-        .pinyin-text {
-            color: #6c757d;
-            font-size: 1.25rem;
-        }
-        /* Можно добавить mb-4 к .character-center, если нужен больший отступ */
-    </style>
+        answerHistory[currentCard.character].total += 1;
 
-    <script>
-        const cards = {{ cards_json|safe }};
-        let remainingCards = {{ remaining_cards|safe }};
-        const sessionId = "{{ session_id }}";
-        let currentCard = null;
-        let answerSelected = false;
-        let answerHistory = {};
+        // Highlight buttons
+        document.querySelectorAll('.option-btn').forEach(b => {
+            if (b.textContent === currentCard.meaning) b.classList.add('correct');
+            else if (b === clickedBtn && selected !== currentCard.meaning) b.classList.add('wrong');
+            b.disabled = true;
+        });
 
-        console.log('Session ID:', sessionId);
-
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function selectRandomCard() {
-            if (remainingCards.length === 0) {
-                endGame();
-                return null;
-            }
-            const index = Math.floor(Math.random() * remainingCards.length);
-            const character = remainingCards[index];
-            remainingCards.splice(index, 1);
-            return cards.find(card => card.character === character);
-        }
-
-        function generateOptions(correctCard) {
-            const options = [correctCard.meaning];
-            const allMeanings = cards.map(card => card.meaning).filter(meaning => meaning !== correctCard.meaning);
-            const wrongOptions = shuffle(allMeanings).slice(0, 3);
-            return shuffle([...options, ...wrongOptions]);
-        }
-
-        function displayCard() {
-            currentCard = selectRandomCard();
-            if (!currentCard) {
-                document.getElementById('game-area').innerHTML = `
-                    <div class="alert alert-success">
-                        Поздравляем! Вы завершили игру для категории {{ category }}!
-                        <br>
-                        <a href="{% url 'home' %}" class="btn btn-primary mt-3">Вернуться на главную</a>
-                    </div>`;
-                return;
-
-                document.getElementById('finish-session').style.display = 'none';
-            }
-
-            answerSelected = false;
-            document.getElementById('card-character').textContent = currentCard.character;
-            document.getElementById('card-pinyin').textContent = currentCard.pinyin;
-            const optionsDiv = document.getElementById('options');
-            optionsDiv.innerHTML = '';
-            const options = generateOptions(currentCard);
-
-            options.forEach(option => {
-                const button = document.createElement('button');
-                button.className = 'btn btn-outline-primary';
-                button.textContent = option;
-                button.onclick = () => checkAnswer(option);
-                optionsDiv.appendChild(button);
-            });
-
-            document.getElementById('feedback').style.display = 'none';
-            document.getElementById('next-card').style.display = 'none';
-        }
-
-        const totalCards = parseInt(document.getElementById('total-cards').textContent);
-
-        function checkAnswer(selected) {
-            if (answerSelected) return;
-            answerSelected = true;
-
-            const feedback = document.getElementById('feedback');
-            const correctAnswers = parseInt(document.getElementById('correct-answers').textContent);
-
-            if (!answerHistory[currentCard.character]) {
-                answerHistory[currentCard.character] = { correct: 0, total: 0 };
-            }
-            answerHistory[currentCard.character].total += 1;
-            if (selected === currentCard.meaning) {
-                feedback.className = 'alert alert-success';
-                feedback.textContent = 'Правильно!';
-                document.getElementById('correct-answers').textContent = correctAnswers + 1;
-                answerHistory[currentCard.character].correct += 1;
-            } else {
-                feedback.className = 'alert alert-danger';
-                feedback.textContent = `Неправильно. Правильный ответ: ${currentCard.meaning}`;
-            }
-
-            const newCorrect = parseInt(document.getElementById('correct-answers').textContent);
-            const percentage = ((newCorrect / totalCards) * 100).toFixed(1);
-
-            document.getElementById('percentage').textContent = percentage;
-
-            const optionButtons = document.getElementById('options').getElementsByTagName('button');
-            for (let button of optionButtons) {
-                button.disabled = true;
-            }
-
-            feedback.style.display = 'block';
-            document.getElementById('next-card').style.display = 'block';
-
-            if (sessionId && sessionId !== 'None') {
-                console.log('Saving answerHistory:', answerHistory);
-                fetch("{% url 'end_game' session_id %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        correct_answers: parseInt(document.getElementById('correct-answers').textContent),
-                        remaining_cards: remainingCards,
-                        answer_history: answerHistory,
-                        is_finished: false
-                    })
-                }).then(response => {
-                    if (!response.ok) {
-                        console.error('Failed to save intermediate session data:', response.status);
-                    } else {
-                        console.log('Intermediate session data saved successfully');
-                    }
-                }).catch(error => {
-                    console.error('Fetch error:', error);
-                });
-            } else {
-                console.error('Invalid sessionId:', sessionId);
-            }
+        if (selected === currentCard.meaning) {
+            feedback.className = 'alert alert-success';
+            feedback.textContent = '✓ Правильно!';
+            document.getElementById('correct-answers').textContent = correctCount + 1;
+            answerHistory[currentCard.character].correct += 1;
+        } else {
+            feedback.className = 'alert alert-danger';
+            feedback.textContent = `✗ Неверно — правильный ответ: ${currentCard.meaning}`;
         }
 
-        function endGame() {
+        const newCorrect = parseInt(document.getElementById('correct-answers').textContent);
+        document.getElementById('percentage').textContent = ((newCorrect / totalCards) * 100).toFixed(1);
+        feedback.style.display = 'block';
+        document.getElementById('next-card').style.display = 'block';
+
+        if (sessionId && sessionId !== 'None') {
             fetch("{% url 'end_game' session_id %}", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                 body: JSON.stringify({
                     correct_answers: parseInt(document.getElementById('correct-answers').textContent),
                     remaining_cards: remainingCards,
                     answer_history: answerHistory,
-                    is_finished: true
+                    is_finished: false
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                window.location.href = "{% url 'stats' %}";
-            });
+            }).catch(console.error);
         }
+    }
 
-        document.getElementById('next-card').addEventListener('click', displayCard);
-        window.addEventListener('load', () => {
-            if (!sessionId || sessionId === 'None') {
-                console.error('Session ID is invalid on page load:', sessionId);
-            }
-            remainingCards = shuffle(remainingCards);
+    function endGame() {
+        fetch("{% url 'end_game' session_id %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                correct_answers: parseInt(document.getElementById('correct-answers').textContent),
+                remaining_cards: remainingCards,
+                answer_history: answerHistory,
+                is_finished: true
+            })
+        }).then(() => window.location.href = "{% url 'stats' %}");
+    }
+
+    document.getElementById('next-card').addEventListener('click', displayCard);
+    document.getElementById('finish-session').addEventListener('click', () => {
+        if (confirm('Завершить сессию досрочно?')) endGame();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && answerSelected && document.getElementById('next-card').style.display === 'block') {
+            e.preventDefault();
             displayCard();
-        });
+        }
+    });
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' && answerSelected && document.getElementById('next-card').style.display === 'block') {
-                event.preventDefault();
-                displayCard();
-            }
-        });
-
-        document.getElementById('finish-session').addEventListener('click', function() {
-            if (confirm('Вы действительно хотите завершить сессию досрочно?')) {
-                endGame();
-            }
-        });
-    </script>
+    remainingCards = shuffle(remainingCards);
+    displayCard();
+</script>
 {% endblock %}
