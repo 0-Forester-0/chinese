@@ -3,110 +3,652 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chinese SRS</title>
+    <title>汉学 — Chinese SRS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        @media (max-width: 576px) {
-            .display-4, .card-title.display-4 {
-                font-size: 2rem;
-            }
-            .card {
-                margin-left: -10px;
-                margin-right: -10px;
-            }
-            .container, .container.mt-5, .container.mt-3 {
-                padding-left: 5px !important;
-                padding-right: 5px !important;
-                max-width: 100vw !important;
-            }
-            table {
-                font-size: 0.9rem;
-            }
-            .navbar-brand {
-                font-size: 1.2rem;
-            }
-            .navbar-nav .nav-link {
-                font-size: 1rem;
-                padding: 0.5rem 0.7rem;
-            }
+        :root {
+            --ink: #0e1b2e;
+            --ink-mid: #1e2f45;
+            --ink-soft: #2d4460;
+            --vermillion: #d94f2b;
+            --vermillion-dark: #b83d1f;
+            --vermillion-light: #f0674a;
+            --gold: #c9953a;
+            --paper: #f6f2ec;
+            --paper-warm: #ede8df;
+            --paper-border: #ddd5c8;
+            --text-primary: #1a2332;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --surface: #ffffff;
+            --surface-raised: #faf8f5;
+            --shadow-sm: 0 1px 3px rgba(14,27,46,0.08), 0 1px 2px rgba(14,27,46,0.06);
+            --shadow-md: 0 4px 16px rgba(14,27,46,0.10), 0 2px 6px rgba(14,27,46,0.07);
+            --shadow-lg: 0 8px 32px rgba(14,27,46,0.12), 0 4px 12px rgba(14,27,46,0.08);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Sora', sans-serif;
+            background-color: var(--paper);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
-        /* Footer styles */
-        .footer-support {
-            text-align: center;
-            padding: 16px 0;
-            background: #f8f9fa;
-            color: #212529;
-            font-size: 1rem;
-            border-top: 1px solid #dee2e6;
+
+        /* ── NAVBAR ─────────────────────────────────────────────── */
+        .main-nav {
+            background: var(--ink);
+            border-bottom: 1px solid var(--ink-mid);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(14,27,46,0.25);
+        }
+
+        .main-nav .container {
+            display: flex;
+            align-items: stretch;
+            min-height: 60px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            padding: 0 24px 0 0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            margin-right: 8px;
+        }
+
+        .nav-brand-kanji {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.6rem;
+            color: var(--vermillion);
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .nav-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+        }
+
+        .nav-brand-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.04em;
+        }
+
+        .nav-brand-sub {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .nav-brand:hover .nav-brand-kanji { color: var(--vermillion-light); }
+
+        .nav-links {
+            display: flex;
+            align-items: stretch;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex: 1;
+        }
+
+        .nav-links .nav-item {
+            display: flex;
+            align-items: stretch;
+        }
+
+        .nav-links .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: rgba(255,255,255,0.55);
+            text-decoration: none;
+            letter-spacing: 0.02em;
+            transition: var(--transition);
+            border-bottom: 2px solid transparent;
+            position: relative;
+            gap: 6px;
+        }
+
+        .nav-links .nav-link:hover {
+            color: rgba(255,255,255,0.92);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .nav-links .nav-link.active,
+        .nav-links .nav-link:focus {
+            color: #fff;
+            border-bottom-color: var(--vermillion);
+        }
+
+        .nav-links .nav-item.ms-auto .nav-link {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .nav-links .nav-item.ms-auto .nav-link:hover {
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Mobile nav toggle */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            padding: 8px;
+            margin-left: auto;
+            cursor: pointer;
+        }
+
+        .nav-toggle:hover { color: #fff; }
+
+        @media (max-width: 768px) {
+            .nav-toggle { display: flex; align-items: center; }
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background: var(--ink);
+                flex-direction: column;
+                padding: 8px 0 16px;
+                border-top: 1px solid var(--ink-mid);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            }
+            .nav-links.open { display: flex; }
+            .nav-links .nav-link {
+                padding: 12px 20px;
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+            .nav-links .nav-link:hover,
+            .nav-links .nav-link.active {
+                border-left-color: var(--vermillion);
+                border-bottom-color: transparent;
+            }
+            .nav-links .nav-item.ms-auto { margin-left: 0 !important; }
+        }
+
+        /* ── PAGE WRAPPER ───────────────────────────────────────── */
+        .page-wrapper {
+            min-height: calc(100vh - 60px);
+            padding: 28px 0 80px;
+        }
+
+        /* ── TYPOGRAPHY ─────────────────────────────────────────── */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* ── CARDS ──────────────────────────────────────────────── */
+        .card {
+            border: 1px solid var(--paper-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            background: var(--surface);
+            transition: box-shadow var(--transition);
+        }
+
+        .card:hover { box-shadow: var(--shadow-md); }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--paper-border);
+            padding: 16px 20px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+        }
+
+        .card-header.bg-primary { background: var(--ink) !important; }
+        .card-header.bg-success { background: #1a3a2a !important; }
+
+        .card-body { padding: 20px; }
+
+        /* ── BUTTONS ────────────────────────────────────────────── */
+        .btn {
+            font-family: 'Sora', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+            border-width: 1.5px;
+        }
+
+        .btn-primary {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--ink-mid);
+            border-color: var(--ink-mid);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14,27,46,0.2);
+        }
+
+        .btn-success {
+            background: #1e5738;
+            border-color: #1e5738;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #174a30;
+            border-color: #174a30;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30,87,56,0.25);
+        }
+
+        .btn-danger {
+            background: var(--vermillion);
+            border-color: var(--vermillion);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: var(--vermillion-dark);
+            border-color: var(--vermillion-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--paper-border);
+            color: var(--text-secondary);
+        }
+        .btn-secondary:hover {
+            background: var(--paper-warm);
+            border-color: var(--paper-border);
+            color: var(--text-primary);
+        }
+
+        .btn-warning {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: #fff;
+        }
+        .btn-warning:hover {
+            background: #b5822e;
+            border-color: #b5822e;
+        }
+
+        .btn-outline-primary {
+            border-color: var(--ink);
+            color: var(--ink);
+        }
+        .btn-outline-primary:hover {
+            background: var(--ink);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-danger {
+            border-color: var(--vermillion);
+            color: var(--vermillion);
+        }
+        .btn-outline-danger:hover {
+            background: var(--vermillion);
+            color: #fff;
+        }
+
+        .btn-lg {
+            padding: 12px 24px;
+            font-size: 0.9rem;
+        }
+
+        /* ── BADGES ─────────────────────────────────────────────── */
+        .badge {
+            font-family: 'Sora', sans-serif;
+            font-weight: 500;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+            border-radius: 100px;
+            padding: 4px 10px;
+        }
+        .badge.bg-primary { background: var(--ink) !important; }
+        .badge.bg-secondary { background: rgba(14,27,46,0.12) !important; color: var(--text-secondary) !important; }
+        .badge.bg-success { background: #1e5738 !important; }
+        .badge.bg-warning { background: var(--gold) !important; }
+        .badge.bg-danger { background: var(--vermillion) !important; }
+
+        /* ── TABLES ─────────────────────────────────────────────── */
+        .table {
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+        .table th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--paper-border);
+            padding: 10px 16px;
+            background: var(--surface-raised);
+        }
+        .table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--paper-border);
+            vertical-align: middle;
+        }
+        .table-hover tbody tr:hover { background: var(--paper) !important; }
+        .table-striped tbody tr:nth-of-type(odd) { background: var(--surface-raised); }
+
+        /* ── PROGRESS ────────────────────────────────────────────── */
+        .progress {
+            background: var(--paper-warm);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+        .progress-bar { border-radius: 100px; transition: width 0.5s ease; }
+        .progress-bar.bg-primary { background: var(--ink) !important; }
+        .progress-bar.bg-success { background: #1e5738 !important; }
+        .progress-bar.bg-warning { background: var(--gold) !important; }
+        .progress-bar.bg-danger { background: var(--vermillion) !important; }
+
+        /* ── ALERTS ─────────────────────────────────────────────── */
+        .alert {
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            border-width: 1.5px;
+        }
+        .alert-info {
+            background: #eff8ff;
+            border-color: #bae6fd;
+            color: #0c4a6e;
+        }
+        .alert-success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #14532d;
+        }
+        .alert-danger {
+            background: #fff1ee;
+            border-color: #fecaca;
+            color: #7f1d1d;
+        }
+        .alert-warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #78350f;
+        }
+
+        /* ── FORMS ───────────────────────────────────────────────── */
+        .form-control, .form-select {
+            border: 1.5px solid var(--paper-border);
+            border-radius: var(--radius-sm);
+            font-family: 'Sora', sans-serif;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            background: var(--surface);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(14,27,46,0.12);
+        }
+        .form-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+            margin-bottom: 6px;
+        }
+        .form-text { font-size: 0.78rem; color: var(--text-muted); }
+
+        /* ── TABS ────────────────────────────────────────────────── */
+        .nav-tabs {
+            border-bottom: 1.5px solid var(--paper-border);
+            gap: 4px;
+        }
+        .nav-tabs .nav-link {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            padding: 10px 16px;
+            transition: var(--transition);
+        }
+        .nav-tabs .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--paper-warm);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        }
+        .nav-tabs .nav-link.active {
+            color: var(--ink);
+            font-weight: 600;
+            border-bottom-color: var(--vermillion);
+            background: transparent;
+        }
+
+        /* ── FOOTER ──────────────────────────────────────────────── */
+        .main-footer {
             position: fixed;
-            width: 100%;
-            left: 0;
             bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(246,242,236,0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-top: 1px solid var(--paper-border);
+            padding: 10px 0;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
             z-index: 100;
         }
-        @media (max-width: 576px) {
-            .footer-support {
-                font-size: 0.95rem;
-                padding: 12px 0;
-            }
+        .main-footer a {
+            color: var(--vermillion);
+            text-decoration: none;
         }
-        body {
-            padding-bottom: 60px;
+        .main-footer a:hover { color: var(--vermillion-dark); text-decoration: underline; }
+
+        /* ── STAT NUMBER CARDS ───────────────────────────────────── */
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--paper-border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            transition: var(--transition);
+        }
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── UTILS ───────────────────────────────────────────────── */
+        .text-vermillion { color: var(--vermillion) !important; }
+        .bg-paper { background: var(--paper) !important; }
+        .border-paper { border-color: var(--paper-border) !important; }
+        .rounded-xl { border-radius: var(--radius-xl) !important; }
+
+        /* ── LIST GROUP ──────────────────────────────────────────── */
+        .list-group-item {
+            border-color: var(--paper-border);
+            font-size: 0.875rem;
+            padding: 12px 16px;
+        }
+        .list-group-item-action:hover {
+            background: var(--paper);
+            color: var(--text-primary);
+        }
+
+        /* ── COLLAPSE ────────────────────────────────────────────── */
+        kbd {
+            background: var(--ink);
+            color: #fff;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+        }
+
+        /* ── LOADING ANIMATION ─────────────────────────────────── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .page-enter { animation: fadeInUp 0.3s ease; }
+
+        /* ── MOBILE ──────────────────────────────────────────────── */
+        @media (max-width: 576px) {
+            .page-wrapper { padding: 16px 0 80px; }
+            .card-body { padding: 16px; }
+            .page-title { font-size: 1.4rem; }
+            .table-responsive { border-radius: var(--radius-md); overflow: hidden; }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">Chinese SRS</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+
+    <!-- ── NAVIGATION ──────────────────────────────────────────── -->
+    <nav class="main-nav">
+        <div class="container position-relative">
+            <a class="nav-brand" href="{% url 'home' %}">
+                <span class="nav-brand-kanji">汉</span>
+                <span class="nav-brand-text">
+                    <span class="nav-brand-name">Chinese SRS</span>
+                    <span class="nav-brand-sub">Система повторений</span>
+                </span>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="Меню">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'home' %}">Главная</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'study_select' %}">📚 Изучать</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'game_select_category' %}">🎮 Тест</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'stats' %}">Статистика</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'dictionary' %}">Словарь</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'register' %}">Регистрация</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">Войти</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+
+            <ul class="nav-links" id="navLinks">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            Главная
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'study_select' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                            Изучать
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'game_select_category' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12h6M12 9v6"/></svg>
+                            Тест
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'stats' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                            Статистика
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dictionary' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            Словарь
+                        </a>
+                    </li>
+                    <li class="nav-item ms-auto">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Выйти
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="nav-item ms-auto">
+                        <a class="nav-link" href="{% url 'register' %}">Регистрация</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                            Войти
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
         </div>
     </nav>
-    <div class="container mt-3">
-        {% block content %}
-        {% endblock %}
+
+    <!-- ── CONTENT ───────────────────────────────────────────────── -->
+    <div class="page-wrapper">
+        <div class="container page-enter">
+            {% block content %}{% endblock %}
+        </div>
     </div>
-    <footer class="footer-support">
-        Возникли вопросы или обнаружили ошибку? Напишите на почту техподдержки:
+
+    <!-- ── FOOTER ─────────────────────────────────────────────────── -->
+    <footer class="main-footer">
+        Вопросы или ошибки? &nbsp;
         <a href="mailto:dimasik98851@gmail.com">dimasik98851@gmail.com</a>
     </footer>
+
+    <script>
+        // Mobile nav toggle
+        document.getElementById('navToggle').addEventListener('click', function() {
+            document.getElementById('navLinks').classList.toggle('open');
+        });
+
+        // Active nav link
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-links .nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>
