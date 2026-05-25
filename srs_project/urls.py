@@ -13,12 +13,13 @@ urlpatterns = [
     path('collections/', views.collections, name='collections'),
     path('collections/create/', views.create_collection, name='create_collection'),
     path('game_select_category/', views.game_select_category, name='game_select_category'),
-    path('game/<str:category>/', views.game, name='game'),
+    path('game/<str:category>/<int:count>/', views.game, name='game'),
     path('game/end/<str:session_id>/', views.end_game, name='end_game'),  # Изменено на str
     path('stats/', views.stats, name='stats'),
     path('dictionary/', views.dictionary, name='dictionary'),
     path('dictionary/search/', views.dictionary_search, name='dictionary_search'),
     path('card/<int:card_id>/delete/', views.card_delete, name='card_delete'),
+    
 
     # ── Сессии изучения (SM-2) ──────────────────────────────────────────────
     path('study/', views.study_select, name='study_select'),
