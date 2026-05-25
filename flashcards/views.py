@@ -297,84 +297,57 @@ def game_select_category(request):
     return render(request, 'game_select_category.html', {'categories': categories})
 
 @login_required
-# def game(request, category):
-#     if category not in HSK_CHARACTERS:
-#         return redirect('game_select_category')
-
-#     client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
-#     db = client['chinese_srs']
-
-#     session = GameSession.objects.filter(user=request.user, category=category, total_answers__lt=len(HSK_CHARACTERS[category])).first()
-#     if not session:
-#         cards_data = [{'character': char, 'pinyin': data['pinyin'], 'meaning': data['meaning']} for char, data in HSK_CHARACTERS[category].items()]
-#         session = GameSession.objects.create(
-#             user=request.user,
-#             category=category,
-#             remaining_cards=[card['character'] for card in cards_data],
-#             answer_history={}
-#         )
-#         print(f"Created new session: {str(session.id)}")
-    
-#     print(f"Rendering game with session_id: {str(session.id)}")
-#     cards_data = [{'character': char, 'pinyin': data['pinyin'], 'meaning': data['meaning']} for char, data in HSK_CHARACTERS[category].items()]
-def game(request, category):
+def game(request, category, count=20):
     if category not in HSK_CHARACTERS:
         return redirect('game_select_category')
 
-    client = MongoClient('mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryWrites=true&w=majority&appName=SRS')
+    count = max(10, min(30, count))  # защита от некорректных значений
+
+    client = MongoClient(MONGO_URI)
     db = client['chinese_srs']
 
-    # Удаляем все сессии пользователя для этой категории с total_answers=0
-    # db['flashcards_gamesession'].delete_many({
-    #     'user_id': request.user.id,
-    #     'category': category,
-    #     'total_answers': 0
-    # })
+    # Выбираем случайные count иероглифов из категории
+    all_chars = list(HSK_CHARACTERS[category].keys())
+    selected_chars = random.sample(all_chars, min(count, len(all_chars)))
 
+    cards_data = [
+        {
+            'character': char,
+            'pinyin': HSK_CHARACTERS[category][char]['pinyin'],
+            'meaning': HSK_CHARACTERS[category][char]['meaning'],
+        }
+        for char in selected_chars
+    ]
 
-    cards_data = [{'character': char, 'pinyin': data['pinyin'], 'meaning': data['meaning']} 
-                     for char, data in HSK_CHARACTERS[category].items()]
-
-    # Создаем новую сессию только если нет активных
-    session = db['flashcards_gamesession'].find_one({
+    # Создаём новую сессию для этого захода
+    new_session = {
         'user_id': request.user.id,
         'category': category,
-        'is_finished': False
-    })
-
-    if not session:
-        
-        new_session = {
-            'user_id': request.user.id,
-            'category': category,
-            'remaining_cards': [card['character'] for card in cards_data],
-            'answer_history': {},
-            'correct_answers': 0,
-            'total_answers': 0,
-            'percentage': 0.0,
-            'created_at': datetime.datetime.now(),
-            'updated_at': datetime.datetime.now(),
-            'is_finished': False
-        }
-        session_id = db['flashcards_gamesession'].insert_one(new_session).inserted_id
-        session = db['flashcards_gamesession'].find_one({'_id': session_id})
-        print(f"Created new session: {session_id}")  
-    else:
-        print(f"Continuing existing session: {session['_id']}")
-
-    total_cards_in_category = len(HSK_CHARACTERS[category])
+        'count': count,
+        'remaining_cards': selected_chars,
+        'answer_history': {},
+        'correct_answers': 0,
+        'total_answers': 0,
+        'percentage': 0.0,
+        'created_at': datetime.datetime.now(),
+        'updated_at': datetime.datetime.now(),
+        'is_finished': False,
+    }
+    session_id = db['flashcards_gamesession'].insert_one(new_session).inserted_id
+    client.close()
 
     return render(request, 'game.html', {
         'cards_json': json.dumps(cards_data),
-        'session_id': str(session['_id']),
+        'session_id': str(session_id),
         'category': category,
-        'total_cards_in_category': total_cards_in_category,
-        'correct_answers': session['correct_answers'],
-        'total_answers': session['total_answers'],
-        'percentage': session['percentage'],
-        'remaining_cards': json.dumps(session['remaining_cards'])
+        'count': count,
+        'total_cards_in_category': count,
+        'correct_answers': 0,
+        'total_answers': 0,
+        'percentage': 0.0,
+        'remaining_cards': json.dumps(selected_chars),
     })
-
+    
 @login_required
 @csrf_exempt
 def end_game(request, session_id):
