@@ -160,10 +160,31 @@
         <div class="row g-3">
             {% for card in cards %}
             <div class="col-12 col-sm-6 col-md-4">
-                <div style="background:var(--surface-raised); border:1px solid var(--paper-border); border-radius:var(--radius-md); padding:16px; height:100%; transition:var(--transition);"
+                <div style="background:var(--surface-raised); border:1px solid var(--paper-border); border-radius:var(--radius-md); padding:16px; height:100%; transition:var(--transition); position:relative;"
                      onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)';"
                      onmouseout="this.style.boxShadow=''; this.style.transform='';">
-                    <div class="d-flex align-items-start justify-content-between mb-2">
+            
+                    <!-- Кнопка удаления -->
+                    <form method="post" action="{% url 'card_delete' card.id %}"
+                          style="position:absolute; top:12px; right:12px;"
+                          onsubmit="return confirm('Удалить «{{ card.character }}»?')">
+                        {% csrf_token %}
+                        <button type="submit" title="Удалить карточку"
+                                style="background:none; border:none; cursor:pointer; padding:4px;
+                                       color:var(--text-muted); transition:color 0.2s;"
+                                onmouseover="this.style.color='var(--vermillion)'"
+                                onmouseout="this.style.color='var(--text-muted)'">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14H6L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4h6v2"/>
+                            </svg>
+                        </button>
+                    </form>
+            
+                    <div class="d-flex align-items-start justify-content-between mb-2" style="padding-right:24px;">
                         <span style="font-family:'Noto Serif SC',serif; font-size:2rem; color:var(--ink); line-height:1;">
                             {{ card.character }}
                         </span>
@@ -171,10 +192,12 @@
                     </div>
                     <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:6px;">{{ card.pinyin }}</p>
                     <div>
-                        <span class="collapse" id="meaning-{{ card.id }}" style="font-size:0.875rem; color:var(--text-primary);">
+                        <span class="collapse" id="meaning-{{ card.id }}"
+                              style="font-size:0.875rem; color:var(--text-primary);">
                             {{ card.meaning }}
                         </span>
-                        <button class="btn btn-secondary" style="font-size:0.72rem; padding:3px 8px; margin-top:4px;"
+                        <button class="btn btn-secondary"
+                                style="font-size:0.72rem; padding:3px 8px; margin-top:4px;"
                                 data-bs-toggle="collapse" data-bs-target="#meaning-{{ card.id }}">
                             Перевод
                         </button>
