@@ -136,7 +136,7 @@ def home(request):
 @login_required
 def stats(request):
     sessions = GameSession.objects.filter(user=request.user).order_by('-created_at')
-    HSK_TOTAL = {'HSK1': 151, 'HSK2': 250, 'HSK3': 762}
+    HSK_TOTAL = {'HSK1': 496, 'HSK2': 764, 'HSK3': 966}
 
     # ── Статистика тестов ───────────────────────────────────────────────────
     test_stats = {
@@ -294,14 +294,18 @@ def collections(request):
 @login_required
 def game_select_category(request):
     categories = ['HSK1', 'HSK2', 'HSK3']
-    return render(request, 'game_select_category.html', {'categories': categories})
+    count_options = [10, 20, 30]
+    return render(request, 'game_select_category.html', {
+        'categories': categories,
+        'count_options': count_options,
+    })
 
 @login_required
 def game(request, category, count=20):
     if category not in HSK_CHARACTERS:
         return redirect('game_select_category')
 
-    count = max(10, min(30, count))  # защита от некорректных значений
+    count = max(5, min(50, count))  # защита от некорректных значений
 
     client = MongoClient(MONGO_URI)
     db = client['chinese_srs']
