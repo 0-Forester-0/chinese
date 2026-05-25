@@ -231,6 +231,15 @@ def stats(request):
     })
 
 @login_required
+def card_delete(request, card_id):
+    if request.method == 'POST':
+        card = Card.objects.filter(id=card_id, user=request.user).first()
+        if card:
+            card.delete()
+    return redirect('home')
+
+
+@login_required
 def card_create(request):
     if request.method == 'POST':
         form = CardForm(request.POST)
