@@ -572,7 +572,7 @@ def study_session_start(request, category, count):
     db     = client['chinese_srs']
     now    = datetime.datetime.now()
 
-    all_chars = list(HSK_CHARACTERS[category].keys())
+    all_chars = get_ordered_chars(category)
 
     # Загружаем статистику пользователя по этой категории
     all_stats = {
