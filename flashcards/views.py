@@ -592,7 +592,7 @@ def study_session_start(request, category, count):
     due_cards.sort(key=lambda c: all_stats[c].get('next_review', now))
 
     # 2. Новые карточки (ещё никогда не изучались)
-    NEW_PER_SESSION = 10
+    NEW_PER_SESSION = 5
     new_cards = [char for char in all_chars if char not in all_stats]
     new_cards = new_cards[:NEW_PER_SESSION]
 
