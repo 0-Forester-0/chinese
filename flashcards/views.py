@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import CardForm, RegisterForm
@@ -321,12 +322,145 @@ def get_ordered_chars(category):
 
 @login_required
 def game_select_category(request):
-    categories = ['HSK1', 'HSK2', 'HSK3']
-    count_options = [10, 20, 30]
+    from .hsk_order import HSK_GROUPS
+ 
+    client = MongoClient(MONGO_URI)
+    db = client['chinese_srs']
+ 
+    # Загружаем результаты группового теста для этого пользователя
+    raw_results = list(db['flashcards_group_results'].find({'user_id': request.user.id}))
+    client.close()
+ 
+    # Строим lookup: "HSK1_0" → {best_score, attempts}
+    group_results = {}
+    for r in raw_results:
+        key = f"{r['category']}_{r['group_index']}"
+        group_results[key] = {
+            'best_score': r.get('best_score', 0),
+            'attempts':   r.get('attempts', 0),
+            'last_score': r.get('last_score', 0),
+        }
+ 
+    # Формируем структуру для шаблона
+    groups_for_template = {}
+    for cat, groups in HSK_GROUPS.items():
+        groups_for_template[cat] = []
+        for i, g in enumerate(groups):
+            key = f"{cat}_{i}"
+            result = group_results.get(key)
+            groups_for_template[cat].append({
+                'index':      i,
+                'name':       g['name'],
+                'size':       len(g['chars']),
+                'best_score': result['best_score'] if result else None,
+                'last_score': result['last_score'] if result else None,
+                'attempts':   result['attempts']   if result else 0,
+            })
+ 
     return render(request, 'game_select_category.html', {
-        'categories': categories,
-        'count_options': count_options,
+        'groups': groups_for_template,
     })
+
+@login_required
+def game_group(request, category, group_index):
+    from .hsk_order import HSK_GROUPS
+ 
+    if category not in HSK_GROUPS:
+        return redirect('game_select_category')
+ 
+    groups = HSK_GROUPS[category]
+    if group_index < 0 or group_index >= len(groups):
+        return redirect('game_select_category')
+ 
+    group = groups[group_index]
+    cat_dict = HSK_CHARACTERS.get(category, {})
+    group_chars = [c for c in group['chars'] if c in cat_dict]
+ 
+    if not group_chars:
+        return redirect('game_select_category')
+ 
+    # Пул неверных ответов — все значения из всех уровней HSK
+    all_meanings = []
+    for cat_key, cat_words in HSK_CHARACTERS.items():
+        for char, data in cat_words.items():
+            all_meanings.append(data['meaning'])
+    all_meanings = list(set(all_meanings))
+ 
+    # Строим карточки: каждая содержит правильный и 3 неверных ответа
+    cards_data = []
+    for char in group_chars:
+        char_data = cat_dict[char]
+        correct = char_data['meaning']
+        wrong_pool = [m for m in all_meanings if m != correct]
+        wrong_answers = random.sample(wrong_pool, min(3, len(wrong_pool)))
+        cards_data.append({
+            'character':     char,
+            'pinyin':        char_data['pinyin'],
+            'meaning':       correct,
+            'wrong_answers': wrong_answers,
+        })
+ 
+    random.shuffle(cards_data)
+ 
+    return render(request, 'game_group.html', {
+        'cards_json':  json.dumps(cards_data, ensure_ascii=False),
+        'category':    category,
+        'group_index': group_index,
+        'group_name':  group['name'],
+        'group_size':  len(group_chars),
+    })
+
+@login_required
+@require_POST
+def save_group_result(request):
+    data       = json.loads(request.body)
+    category   = data.get('category', '')
+    group_index = int(data.get('group_index', 0))
+    group_name = data.get('group_name', '')
+    correct    = int(data.get('correct', 0))
+    total      = int(data.get('total', 1))
+    score      = round(correct / total * 100, 1) if total > 0 else 0.0
+ 
+    client = MongoClient(MONGO_URI)
+    db = client['chinese_srs']
+    col = db['flashcards_group_results']
+ 
+    existing = col.find_one({
+        'user_id':     request.user.id,
+        'category':    category,
+        'group_index': group_index,
+    })
+ 
+    now = datetime.datetime.now()
+ 
+    if existing:
+        col.update_one(
+            {'_id': existing['_id']},
+            {
+                '$set': {
+                    'last_played': now,
+                    'last_score':  score,
+                    'group_name':  group_name,
+                },
+                '$inc': {'attempts': 1},
+                '$max': {'best_score': score},
+            }
+        )
+    else:
+        col.insert_one({
+            'user_id':     request.user.id,
+            'category':    category,
+            'group_index': group_index,
+            'group_name':  group_name,
+            'best_score':  score,
+            'last_score':  score,
+            'attempts':    1,
+            'last_played': now,
+        })
+ 
+    client.close()
+    return JsonResponse({'status': 'ok', 'score': score})
+
 
 @login_required
 def game(request, category, count=20):
