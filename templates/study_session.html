@@ -442,16 +442,7 @@
     document.getElementById('btn-end').addEventListener('click', () => {
         if (confirm('Завершить сессию досрочно?')) showDone();
     });
-    document.addEventListener('keydown', e => {
-        if (e.code === 'Space' && stateQ.style.display !== 'none') {
-            e.preventDefault(); revealAnswer();
-        }
-        if (stateA.style.display !== 'none') {
-            if (e.key === '1') submitRating(0);
-            if (e.key === '2') submitRating(3);
-            if (e.key === '3') submitRating(5);
-        }
-    });
+    
 
     if (total > 0) {
         document.getElementById('total-num').textContent = total;
