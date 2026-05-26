@@ -1,147 +1,155 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
+<div class="container mt-4 pb-5">
+  <h1 class="display-5 mb-1">Тесты HSK</h1>
+  <p class="text-muted mb-4">Выберите режим: случайный срез из уровня или тест по группе</p>
 
-<div class="row justify-content-center">
-<div class="col-12 col-md-8 col-lg-6">
+  <!-- ══════════════════════════════════════════════════
+       TABS
+  ══════════════════════════════════════════════════ -->
+  <ul class="nav nav-tabs mb-4" id="modeTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="random-tab" data-bs-toggle="tab"
+              data-bs-target="#random-panel" type="button">
+        🎲 Случайный тест
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="group-tab" data-bs-toggle="tab"
+              data-bs-target="#group-panel" type="button">
+        📚 По группам
+      </button>
+    </li>
+  </ul>
 
-    <div class="mb-5">
-        <h1 class="page-title">Настройка теста</h1>
-        <p class="page-subtitle">Выберите уровень и количество иероглифов</p>
-    </div>
+  <div class="tab-content">
 
-    <!-- Выбор уровня -->
-    <div class="card mb-3">
-        <div class="card-body" style="padding:24px;">
-            <label class="form-label mb-3">Уровень HSK</label>
-            <div class="d-flex flex-column gap-2" id="category-list">
-                {% for category in categories %}
-                <label style="cursor:pointer;">
-                    <input type="radio" name="category" value="{{ category }}"
-                           class="d-none cat-radio" {% if forloop.first %}checked{% endif %}>
-                    <div class="category-card">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="category-icon">
-                                {% if category == 'HSK1' %}🌱
-                                {% elif category == 'HSK2' %}🌿
-                                {% else %}🌳{% endif %}
-                            </div>
-                            <div>
-                                <div style="font-size:1rem; font-weight:600; color:var(--ink);">{{ category }}</div>
-                                <div style="font-size:0.78rem; color:var(--text-muted);">
-                                    {% if category == 'HSK1' %}Базовый · 
-                                    {% elif category == 'HSK2' %}Элементарный ·
-                                    {% else %}Средний ·{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="check-mark">✓</div>
-                    </div>
-                </label>
-                {% endfor %}
+    <!-- ══════════════════════════════════════════════════
+         TAB 1: RANDOM
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade show active" id="random-panel" role="tabpanel">
+      <div class="row g-3">
+        {% for cat in "HSK1 HSK2 HSK3"|split:" " %}
+        <div class="col-12 col-md-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header
+              {% if cat == 'HSK1' %}bg-primary{% elif cat == 'HSK2' %}bg-success{% else %}bg-purple{% endif %}
+              text-white">
+              <h5 class="mb-0">{{ cat }}</h5>
             </div>
-        </div>
-    </div>
-
-    <!-- Выбор количества -->
-    <div class="card mb-4">
-        <div class="card-body" style="padding:24px;">
-            <label class="form-label mb-3">Количество иероглифов</label>
-            <div class="d-flex gap-3 flex-wrap" id="count-list">
-                {% for n in count_options %}
-                <label style="cursor:pointer; flex:1; min-width:80px;">
-                    <input type="radio" name="count" value="{{ n }}"
-                           class="d-none count-radio" {% if n == 20 %}checked{% endif %}>
-                    <div class="count-card">
-                        <div style="font-size:1.8rem; font-weight:700; color:var(--ink); line-height:1;">{{ n }}</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">
-                            {% if n == 10 %}~2 мин
-                            {% elif n == 20 %}~4 мин
-                            {% else %}~6 мин{% endif %}
-                        </div>
-                    </div>
-                </label>
-                {% endfor %}
+            <div class="card-body d-flex flex-column gap-2">
+              <p class="text-muted small mb-2">Случайная выборка иероглифов из всего уровня</p>
+              <a href="{% url 'game' cat 10 %}" class="btn btn-outline-secondary btn-sm">10 слов</a>
+              <a href="{% url 'game' cat 20 %}" class="btn btn-primary btn-sm">20 слов</a>
+              <a href="{% url 'game' cat 30 %}" class="btn btn-outline-secondary btn-sm">30 слов</a>
             </div>
+          </div>
         </div>
-    </div>
+        {% endfor %}
+      </div>
+    </div><!-- /random-panel -->
 
-    <!-- Кнопка старт -->
-    <button id="btn-start" class="btn btn-primary btn-lg w-100" style="padding:14px;">
-        Начать тест
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ms-2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>
-    </button>
 
-    <div class="mt-3">
-        <a href="{% url 'home' %}" class="btn btn-secondary">← Назад</a>
-    </div>
+    <!-- ══════════════════════════════════════════════════
+         TAB 2: GROUPS
+    ══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="group-panel" role="tabpanel">
 
-</div>
+      <!-- HSK level tabs inside groups panel -->
+      <ul class="nav nav-pills mb-3" id="hskLevelTabs" role="tablist">
+        {% for cat, grp_list in groups.items %}
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if forloop.first %}active{% endif %}"
+                  id="lvl-{{ cat }}-tab" data-bs-toggle="pill"
+                  data-bs-target="#lvl-{{ cat }}" type="button">
+            {{ cat }}
+            {% with done=0 total=grp_list|length %}
+              <span class="badge bg-secondary ms-1">
+                {# count completed groups #}
+                {% for g in grp_list %}{% if g.best_score != None %}{% with done=done|add:1 %}{% endwith %}{% endif %}{% endfor %}
+                {{ grp_list|length }}
+              </span>
+            {% endwith %}
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <div class="tab-content" id="hskLevelContent">
+        {% for cat, grp_list in groups.items %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+             id="lvl-{{ cat }}" role="tabpanel">
+
+          <div class="row g-3">
+            {% for g in grp_list %}
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="card shadow-sm h-100 group-card {% if g.best_score != None %}border-success{% endif %}">
+                <div class="card-body d-flex flex-column">
+
+                  <!-- Group name & size -->
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 fw-semibold">{{ g.name }}</h6>
+                    <span class="badge bg-light text-dark border ms-2 flex-shrink-0">{{ g.size }} сл.</span>
+                  </div>
+
+                  <!-- Score / progress -->
+                  {% if g.best_score != None %}
+                    <div class="mb-2">
+                      <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Лучший результат</span>
+                        <span class="fw-bold
+                          {% if g.best_score >= 80 %}text-success
+                          {% elif g.best_score >= 50 %}text-warning
+                          {% else %}text-danger{% endif %}">
+                          {{ g.best_score }}%
+                        </span>
+                      </div>
+                      <div class="progress" style="height:6px;">
+                        <div class="progress-bar
+                          {% if g.best_score >= 80 %}bg-success
+                          {% elif g.best_score >= 50 %}bg-warning
+                          {% else %}bg-danger{% endif %}"
+                          style="width:{{ g.best_score }}%"></div>
+                      </div>
+                      <div class="small text-muted mt-1">
+                        Попыток: {{ g.attempts }}
+                        {% if g.last_score != g.best_score %}
+                          &nbsp;·&nbsp; Последний: {{ g.last_score }}%
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% else %}
+                    <p class="small text-muted mb-2">Ещё не пройдено</p>
+                  {% endif %}
+
+                  <a href="{% url 'game_group' cat g.index %}"
+                     class="btn btn-sm {% if g.best_score != None %}btn-outline-success{% else %}btn-primary{% endif %} mt-auto">
+                    {% if g.best_score != None %}Пройти снова{% else %}Начать{% endif %}
+                  </a>
+
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div><!-- /row -->
+
+        </div><!-- /tab-pane -->
+        {% endfor %}
+      </div><!-- /tab-content hskLevel -->
+
+    </div><!-- /group-panel -->
+
+  </div><!-- /tab-content mode -->
+
+  <a href="{% url 'home' %}" class="btn btn-secondary mt-4">← На главную</a>
 </div>
 
 <style>
-    .category-card {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        background: var(--surface);
-        border: 1.5px solid var(--paper-border);
-        border-radius: var(--radius-md);
-        transition: all var(--transition);
-    }
-    .category-card:hover { border-color: var(--ink-soft); background: var(--paper-warm); }
-    .cat-radio:checked + .category-card {
-        border-color: var(--ink);
-        background: var(--paper-warm);
-        box-shadow: 0 0 0 3px rgba(14,27,46,0.08);
-    }
-    .check-mark {
-        width: 24px; height: 24px;
-        border-radius: 50%;
-        background: var(--paper-border);
-        color: transparent;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.8rem; font-weight: 700;
-        transition: all var(--transition);
-    }
-    .cat-radio:checked + .category-card .check-mark {
-        background: var(--ink);
-        color: #fff;
-    }
-
-    .count-card {
-        text-align: center;
-        padding: 20px 12px;
-        background: var(--surface);
-        border: 1.5px solid var(--paper-border);
-        border-radius: var(--radius-md);
-        transition: all var(--transition);
-    }
-    .count-card:hover { border-color: var(--ink-soft); background: var(--paper-warm); }
-    .count-radio:checked + .count-card {
-        border-color: var(--ink);
-        background: var(--ink);
-    }
-    .count-radio:checked + .count-card div { color: #fff !important; }
-
-    .category-icon {
-        font-size: 1.4rem;
-        width: 40px; height: 40px;
-        display: flex; align-items: center; justify-content: center;
-        background: var(--paper-warm);
-        border-radius: var(--radius-sm);
-    }
+  .bg-purple { background-color: #6f42c1 !important; }
+  .group-card { transition: box-shadow .2s; }
+  .group-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.13) !important; }
+  .progress { border-radius: 99px; background: rgba(0,0,0,.07); }
+  .progress-bar { border-radius: 99px; }
 </style>
-
-<script>
-    document.getElementById('btn-start').addEventListener('click', () => {
-        const category = document.querySelector('.cat-radio:checked')?.value;
-        const count    = document.querySelector('.count-radio:checked')?.value;
-        if (category && count) {
-            window.location.href = `/game/${category}/${count}/`;
-        }
-    });
-</script>
 {% endblock %}
