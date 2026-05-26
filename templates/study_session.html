@@ -181,6 +181,25 @@
         <div class="p-4 d-flex flex-column align-items-center justify-content-center h-100" style="min-height:340px;">
 
             <!-- Question state -->
+            <!-- Для НОВОЙ карточки — показываем сразу всё -->
+            <div id="state-learn" style="display:none; width:100%; text-align:center;">
+                <div class="mb-2">
+                    <span class="card-badge badge-new">✨ Новое слово — изучите его</span>
+                </div>
+                <div class="flashcard-character" id="learn-character"></div>
+                <p class="pinyin-display mt-1" id="learn-pinyin"></p>
+                <hr class="answer-divider" style="width:60%; margin:16px auto;">
+                <p class="meaning-display mb-4" id="learn-meaning"></p>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:20px;">
+                    Постарайтесь запомнить иероглиф, пиньинь и перевод
+                </p>
+                <button id="btn-learned" class="btn btn-primary" style="padding:12px 40px;">
+                    Запомнил, проверь меня
+                </button>
+                <p style="font-size:0.72rem; color:var(--text-muted); margin-top:12px;">
+                    или нажмите <kbd>Пробел</kbd>
+                </p>
+            </div>
             <div id="state-question" class="w-100 text-center">
                 <div class="mb-3">
                     <span id="card-badge" class="card-badge badge-new">✨ Новое слово</span>
@@ -294,24 +313,68 @@
 
     function showCard(card) {
         const badge = document.getElementById('card-badge');
+        document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
+    
         if (card.is_new) {
-            badge.className = 'card-badge badge-new';
-            badge.textContent = '✨ Новое слово';
+            // Фаза 1: показываем всё сразу для изучения
+            document.getElementById('learn-character').textContent = card.character;
+            document.getElementById('learn-pinyin').textContent    = card.pinyin;
+            document.getElementById('learn-meaning').textContent   = card.meaning;
+    
+            stateQ.style.display     = 'none';
+            stateA.style.display     = 'none';
+            document.getElementById('state-learn').style.display = '';
         } else {
-            badge.className = 'card-badge badge-review';
+            // Фаза повторения — обычный режим
+            badge.className  = 'card-badge badge-review';
             badge.textContent = '🔁 Повторение';
+            document.getElementById('card-character').textContent = card.character;
+            document.getElementById('ans-character').textContent  = card.character;
+            document.getElementById('ans-pinyin').textContent     = card.pinyin;
+            document.getElementById('ans-meaning').textContent    = card.meaning;
+            document.getElementById('answer-feedback').textContent = '';
+            document.getElementById('answer-feedback').className  = 'feedback-msg';
+            document.getElementById('answer-feedback').style.background = '';
+    
+            document.getElementById('state-learn').style.display = 'none';
+            stateQ.style.display = '';
+            stateA.style.display = 'none';
         }
-        document.getElementById('card-character').textContent = card.character;
-        document.getElementById('ans-character').textContent = card.character;
-        document.getElementById('ans-pinyin').textContent    = card.pinyin;
-        document.getElementById('ans-meaning').textContent   = card.meaning;
-        document.getElementById('answer-feedback').textContent = '';
-        document.getElementById('answer-feedback').className = 'feedback-msg';
-
-        stateQ.style.display = '';
-        stateA.style.display = 'none';
         updateProgress();
     }
+
+    document.getElementById('btn-learned').addEventListener('click', () => {
+        const card = cards[idx];
+        // Помечаем как "уже показанную" и переводим в режим теста
+        card.is_new = false;
+        document.getElementById('state-learn').style.display = 'none';
+        document.getElementById('card-character').textContent = card.character;
+        document.getElementById('ans-character').textContent  = card.character;
+        document.getElementById('ans-pinyin').textContent     = card.pinyin;
+        document.getElementById('ans-meaning').textContent    = card.meaning;
+        document.getElementById('answer-feedback').textContent = '';
+        document.getElementById('answer-feedback').style.background = '';
+        stateQ.style.display = '';
+        stateA.style.display = 'none';
+    });
+
+    document.addEventListener('keydown', e => {
+        const learnVisible = document.getElementById('state-learn').style.display !== 'none';
+    
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (learnVisible) {
+                document.getElementById('btn-learned').click();
+            } else if (stateQ.style.display !== 'none') {
+                revealAnswer();
+            }
+        }
+        if (stateA.style.display !== 'none') {
+            if (e.key === '1') submitRating(0);
+            if (e.key === '2') submitRating(3);
+            if (e.key === '3') submitRating(5);
+        }
+    });
 
     function revealAnswer() {
         stateQ.style.display = 'none';
