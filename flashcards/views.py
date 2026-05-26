@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import CardForm, RegisterForm
 from .models import Card, Collection, GameSession
+from .hsk_order import HSK1_ORDER, HSK2_ORDER, HSK3_ORDER
 from .hsk_data import HSK1_CHARACTERS
 from .hsk2_data import HSK2_CHARACTERS
 from .hsk3_data import HSK3_CHARACTERS
@@ -15,6 +16,12 @@ import os
 import json
 import datetime
 import unicodedata
+
+HSK_ORDER = {
+    'HSK1': HSK1_ORDER,
+    'HSK2': HSK2_ORDER,
+    'HSK3': HSK3_ORDER,
+}
 
 HSK_CHARACTERS = {
     'HSK1': HSK1_CHARACTERS,
@@ -290,6 +297,27 @@ def collections(request):
         collection.cards = list(cards)
         collection.card_count = len(collection.cards)
     return render(request, 'collections.html', {'collections': collections})
+    
+@login_required
+def get_ordered_chars(category):
+    """
+    Возвращает слова категории в педагогическом порядке.
+    Слова из ORDER идут первыми, остальные добавляются в конец.
+    """
+    all_chars = list(HSK_CHARACTERS[category].keys())
+    order = HSK_ORDER.get(category, [])
+
+    if not order:
+        return all_chars  # для HSK2/3 — как было
+
+    # Фильтруем: только те, что реально есть в словаре
+    ordered = [c for c in order if c in HSK_CHARACTERS[category]]
+
+    # Добавляем в конец всё, что не попало в список
+    ordered_set = set(ordered)
+    tail = [c for c in all_chars if c not in ordered_set]
+
+    return ordered + tail
 
 @login_required
 def game_select_category(request):
