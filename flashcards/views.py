@@ -593,7 +593,7 @@ def study_session_start(request, category, count):
 
     # 2. Новые карточки (ещё никогда не изучались)
     new_cards = [char for char in all_chars if char not in all_stats]
-    random.shuffle(new_cards)
+    new_cards = new_cards[:NEW_PER_SESSION]
 
     # Объединяем: сначала просроченные, затем новые
     session_chars = (due_cards + new_cards)[:count]
