@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4 pb-5" style="max-width:680px;">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <a href="{% url 'game_select_category' %}" class="btn btn-sm btn-outline-secondary">← Назад</a>
+    <div>
+      <h4 class="mb-0">{{ group_name }}</h4>
+      <small class="text-muted">{{ category }} · {{ group_size }} слов</small>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress mb-4" style="height:8px;">
+    <div id="progress-bar" class="progress-bar bg-primary" style="width:0%;transition:width .3s;"></div>
+  </div>
+  <div class="d-flex justify-content-between small text-muted mb-3">
+    <span id="counter">Слово 1 из {{ group_size }}</span>
+    <span id="score-live">✓ 0 &nbsp;✗ 0</span>
+  </div>
+
+  <!-- Quiz area -->
+  <div id="quiz-area">
+
+    <!-- Card -->
+    <div class="card shadow-sm text-center mb-4" id="char-card">
+      <div class="card-body py-5">
+        <div id="char-display" class="mb-2" style="font-size:80px;font-weight:700;line-height:1;letter-spacing:-2px;"></div>
+        <div id="pinyin-display" class="text-muted" style="font-size:22px;"></div>
+      </div>
+    </div>
+
+    <!-- Answer buttons -->
+    <div id="options-grid" class="row g-2">
+      <!-- filled by JS -->
+    </div>
+
+    <!-- Feedback -->
+    <div id="feedback" class="alert mt-3 d-none" role="alert"></div>
+
+    <!-- Next button (hidden until answered) -->
+    <div class="text-center mt-3">
+      <button id="btn-next" class="btn btn-primary px-5 d-none">Следующее →</button>
+    </div>
+  </div>
+
+  <!-- Results screen (hidden initially) -->
+  <div id="results-area" class="d-none text-center">
+    <div class="card shadow-sm p-5">
+      <div id="result-emoji" class="display-1 mb-3"></div>
+      <h2 id="result-title" class="mb-1"></h2>
+      <p id="result-subtitle" class="text-muted mb-3"></p>
+      <div class="progress mb-3" style="height:14px;border-radius:99px;">
+        <div id="result-bar" class="progress-bar" style="border-radius:99px;transition:width .8s;width:0%"></div>
+      </div>
+      <p id="result-score-text" class="fs-5 fw-bold mb-4"></p>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <a href="{% url 'game_group' category group_index %}" class="btn btn-primary">🔁 Пройти снова</a>
+        <a href="{% url 'game_select_category' %}" class="btn btn-outline-secondary">← К выбору теста</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .option-btn {
+    width: 100%;
+    text-align: left;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 2px solid #dee2e6;
+    background: #fff;
+    transition: border-color .15s, background .15s;
+    cursor: pointer;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: #0d6efd;
+    background: #f0f6ff;
+  }
+  .option-btn.correct  { border-color: #198754; background: #d1e7dd; color: #0f5132; }
+  .option-btn.wrong    { border-color: #dc3545; background: #f8d7da; color: #842029; }
+  .option-btn:disabled { cursor: default; }
+  #char-card { border-radius: 20px; }
+</style>
+
+<script>
+  const ALL_CARDS  = JSON.parse('{{ cards_json|escapejs }}');
+  const CATEGORY   = '{{ category }}';
+  const GROUP_IDX  = {{ group_index }};
+  const GROUP_NAME = '{{ group_name|escapejs }}';
+  const SAVE_URL   = '{% url "save_group_result" %}';
+  const CSRF_TOKEN = '{{ csrf_token }}';
+
+  let current = 0;
+  let correct  = 0;
+  let wrong    = 0;
+  let answered = false;
+
+  const progressBar = document.getElementById('progress-bar');
+  const counter     = document.getElementById('counter');
+  const scoreLive   = document.getElementById('score-live');
+  const charDisplay = document.getElementById('char-display');
+  const pinyinDisp  = document.getElementById('pinyin-display');
+  const optionsGrid = document.getElementById('options-grid');
+  const feedback    = document.getElementById('feedback');
+  const btnNext     = document.getElementById('btn-next');
+  const quizArea    = document.getElementById('quiz-area');
+  const resultsArea = document.getElementById('results-area');
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function showCard(idx) {
+    answered = false;
+    feedback.classList.add('d-none');
+    btnNext.classList.add('d-none');
+
+    const card = ALL_CARDS[idx];
+    charDisplay.textContent  = card.character;
+    pinyinDisp.textContent   = card.pinyin;
+
+    // Progress
+    const pct = Math.round((idx / ALL_CARDS.length) * 100);
+    progressBar.style.width = pct + '%';
+    counter.textContent = `Слово ${idx + 1} из ${ALL_CARDS.length}`;
+    scoreLive.textContent = `✓ ${correct}  ✗ ${wrong}`;
+
+    // Build 4 options: correct + 3 wrong, shuffled
+    const options = shuffle([card.meaning, ...card.wrong_answers.slice(0, 3)]);
+    optionsGrid.innerHTML = '';
+    options.forEach(opt => {
+      const col = document.createElement('div');
+      col.className = 'col-12 col-sm-6';
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleAnswer(btn, opt, card.meaning));
+      col.appendChild(btn);
+      optionsGrid.appendChild(col);
+    });
+  }
+
+  function handleAnswer(clickedBtn, chosen, correct_meaning) {
+    if (answered) return;
+    answered = true;
+
+    const allBtns = optionsGrid.querySelectorAll('.option-btn');
+    allBtns.forEach(b => b.disabled = true);
+
+    if (chosen === correct_meaning) {
+      correct++;
+      clickedBtn.classList.add('correct');
+      feedback.className = 'alert alert-success mt-3';
+      feedback.textContent = '✓ Правильно!';
+    } else {
+      wrong++;
+      clickedBtn.classList.add('wrong');
+      // highlight correct
+      allBtns.forEach(b => {
+        if (b.textContent === correct_meaning) b.classList.add('correct');
+      });
+      feedback.className = 'alert alert-danger mt-3';
+      feedback.textContent = `✗ Неверно. Правильный ответ: ${correct_meaning}`;
+    }
+    feedback.classList.remove('d-none');
+    scoreLive.textContent = `✓ ${correct}  ✗ ${wrong}`;
+
+    if (current + 1 < ALL_CARDS.length) {
+      btnNext.classList.remove('d-none');
+    } else {
+      // Last card — auto-proceed to results after short delay
+      setTimeout(showResults, 900);
+    }
+  }
+
+  btnNext.addEventListener('click', () => {
+    current++;
+    showCard(current);
+  });
+
+  // Keyboard: Space = next, 1-4 = pick option
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && answered && !btnNext.classList.contains('d-none')) {
+      e.preventDefault();
+      btnNext.click();
+      return;
+    }
+    if (!answered) {
+      const n = parseInt(e.key);
+      if (n >= 1 && n <= 4) {
+        const btns = optionsGrid.querySelectorAll('.option-btn');
+        if (btns[n - 1]) btns[n - 1].click();
+      }
+    }
+  });
+
+  function showResults() {
+    const total = ALL_CARDS.length;
+    const pct   = Math.round((correct / total) * 100);
+
+    quizArea.classList.add('d-none');
+    resultsArea.classList.remove('d-none');
+
+    const emoji = pct >= 80 ? '🏆' : pct >= 50 ? '👍' : '📚';
+    const title = pct >= 80 ? 'Отлично!' : pct >= 50 ? 'Неплохо!' : 'Нужно повторить';
+    document.getElementById('result-emoji').textContent = emoji;
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-subtitle').textContent =
+      `${GROUP_NAME} · ${CATEGORY}`;
+    document.getElementById('result-score-text').textContent =
+      `${correct} из ${total} правильно — ${pct}%`;
+
+    const bar = document.getElementById('result-bar');
+    bar.style.width = '0%';
+    bar.className = 'progress-bar ' + (pct >= 80 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-danger');
+    setTimeout(() => { bar.style.width = pct + '%'; }, 100);
+
+    // Save result to server
+    fetch(SAVE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN,
+      },
+      body: JSON.stringify({
+        category:    CATEGORY,
+        group_index: GROUP_IDX,
+        group_name:  GROUP_NAME,
+        correct:     correct,
+        total:       total,
+      }),
+    }).catch(err => console.warn('Could not save group result:', err));
+  }
+
+  // Start
+  showCard(0);
+</script>
+{% endblock %}
