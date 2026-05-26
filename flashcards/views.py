@@ -298,7 +298,7 @@ def collections(request):
         collection.card_count = len(collection.cards)
     return render(request, 'collections.html', {'collections': collections})
     
-@login_required
+
 def get_ordered_chars(category):
     """
     Возвращает слова категории в педагогическом порядке.
