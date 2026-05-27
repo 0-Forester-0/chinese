@@ -130,39 +130,23 @@
                         </label>
                         {% endfor %}
                     </div>
-                    <select name="category" id="category" class="d-none">
-                        {% for cat in categories %}
-                            <option value="{{ cat }}">{{ cat }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Count -->
-                <div class="mb-4">
-                    <label class="form-label" for="count">Карточек за сессию</label>
-                    <div class="d-flex align-items-center gap-3">
-                        <input type="range" class="form-range flex-grow-1" id="count-range"
-                               min="5" max="100" step="5" value="20"
-                               style="accent-color: var(--ink);">
-                        <input type="number" class="form-control" name="count" id="count"
-                               value="20" min="5" max="100"
-                               style="width:80px; text-align:center;">
-                    </div>
-                    <div class="form-text">Рекомендуем 10–30 карточек за одну сессию</div>
                 </div>
 
                 <!-- Due stats -->
-                <div id="due-stats" class="p-3 mb-4 rounded-xl d-none"
+                <div id="due-stats" class="p-3 mb-4 rounded-xl"
                      style="background:var(--paper-warm); border:1px solid var(--paper-border);">
-                    <div class="d-flex gap-4 flex-wrap">
+                    <div class="d-flex gap-4 flex-wrap mb-2">
                         <div>
                             <div style="font-size:1.4rem; font-weight:700; color:var(--vermillion);" id="due-count">—</div>
                             <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">К повторению сегодня</div>
                         </div>
                         <div>
                             <div style="font-size:1.4rem; font-weight:700; color:var(--ink);" id="new-count">—</div>
-                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Новых слов</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Новых слов (до 5)</div>
                         </div>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">
+                        Сессия включит все карточки к повторению + до 5 новых слов
                     </div>
                 </div>
 
@@ -203,7 +187,6 @@
         border-color: var(--ink);
         color: #fff;
     }
-    .form-range { cursor: pointer; }
 
     /* Поворот шеврона при раскрытии */
     [data-bs-target="#sm2-info"][aria-expanded="true"] .sm2-chevron {
@@ -212,21 +195,11 @@
 </style>
 
 <script>
-    const countRange = document.getElementById('count-range');
-    const countInput = document.getElementById('count');
-    countRange.addEventListener('input', () => countInput.value = countRange.value);
-    countInput.addEventListener('input', () => countRange.value = countInput.value);
-
-    const catSelect = document.getElementById('category');
     document.querySelectorAll('.cat-radio').forEach(radio => {
-        radio.addEventListener('change', () => {
-            catSelect.value = radio.value;
-            loadDueStats(radio.value);
-        });
+        radio.addEventListener('change', () => loadDueStats(radio.value));
     });
 
     async function loadDueStats(category) {
-        const el = document.getElementById('due-stats');
         try {
             const resp = await fetch(`/study/due-count/?category=${category}`, {
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' }
@@ -234,10 +207,9 @@
             if (resp.ok) {
                 const data = await resp.json();
                 document.getElementById('due-count').textContent = data.due;
-                document.getElementById('new-count').textContent = data.new_count;
-                el.classList.remove('d-none');
+                document.getElementById('new-count').textContent = Math.min(data.new_count, 5);
             }
-        } catch(e) { el.classList.add('d-none'); }
+        } catch(e) {}
     }
 
     const defaultCat = document.querySelector('.cat-radio:checked');
