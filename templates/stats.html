@@ -288,7 +288,7 @@
                                 {% for session in sessions %}
                                 <tr>
                                     <td style="font-size:0.82rem; white-space:nowrap;">
-                                        {{ session.created_at|date:"d M Y H:i" }}
+                                        {{ session.created_at|date:"d M Y" }}
                                     </td>
                                     <td>
                                         <span class="badge
@@ -299,7 +299,7 @@
                                         </span>
                                     </td>
                                     <td>{{ session.correct_answers }}</td>
-                                    <td>{{ session.total_answers }}</td>
+                                    <td>{{ session.total_answers|default:"—" }}</td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="progress flex-grow-1" style="height:8px; min-width:50px;">
