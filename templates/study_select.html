@@ -142,12 +142,8 @@
                         </div>
                         <div>
                             <div style="font-size:1.4rem; font-weight:700; color:var(--ink);" id="new-count">—</div>
-                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Новых слов (до 5)</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">Новых слов</div>
                         </div>
-                    </div>
-                    <div style="font-size:0.8rem; color:var(--text-muted);">
-                        Сессия включит все карточки к повторению + до 5 новых слов
-                    </div>
                 </div>
 
                 <div class="d-flex gap-2">
@@ -207,7 +203,7 @@
             if (resp.ok) {
                 const data = await resp.json();
                 document.getElementById('due-count').textContent = data.due;
-                document.getElementById('new-count').textContent = Math.min(data.new_count, 5);
+                document.getElementById('new-count').textContent = data.new_count;
             }
         } catch(e) {}
     }
