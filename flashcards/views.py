@@ -145,7 +145,7 @@ def home(request):
 @login_required
 def stats(request):
     sessions = GameSession.objects.filter(user=request.user).order_by('-created_at')
-    HSK_TOTAL = {'HSK1': 496, 'HSK2': 764, 'HSK3': 966}
+    # HSK_TOTAL = {'HSK1': 496, 'HSK2': 764, 'HSK3': 966}
 
     # ── Статистика тестов ───────────────────────────────────────────────────
     test_stats = {
@@ -154,10 +154,9 @@ def stats(request):
         'HSK3': {'best_percentage': 0.0},
     }
     for session in sessions:
-        total_cards = HSK_TOTAL.get(session.category, 0)
         session.calculated_percentage = (
-            round((session.correct_answers / total_cards) * 100, 1)
-            if total_cards > 0 else 0.0
+            round((session.correct_answers / session.total_answers) * 100, 1)
+            if session.total_answers > 0 else 0.0
         )
     for cat in ['HSK1', 'HSK2', 'HSK3']:
         cat_sessions = [s for s in sessions if s.category == cat]
@@ -572,9 +571,15 @@ def end_game(request, session_id):
             data = json.loads(request.body)
             correct_answers = data.get('correct_answers', session.get('correct_answers', 0))
             total_answers = data.get('total_answers', session.get('total_answers', 0))
+            # Если JS не отправил total_answers - вычисляем из answer_history
+            if total_answers == 0 and answer_history:
+                total_answers = sum(h.get('total', 0) for h in answer_history.values())
+            # Если answer_history тоже пуст - берём count из сессии (кол-во карточек)
+            if total_answers == 0:
+                total_answers = session.get('count', 0)
             remaining_cards = data.get('remaining_cards', session.get('remaining_cards', []))
             answer_history = data.get('answer_history', {})
-            is_finished = data.get('is_finished', False)  # <-- вот это
+            is_finished = data.get('is_finished', False)
 
             print(f"Received answer_history: {answer_history}")
 
