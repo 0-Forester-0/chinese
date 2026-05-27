@@ -14,7 +14,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="test-tab" data-bs-toggle="tab"
                     data-bs-target="#test-panel" type="button">
-                🎮 Тесты HSK
+                🎮 Тесты по группам
             </button>
         </li>
     </ul>
@@ -112,7 +112,7 @@
                 </div>
             </div>
 
-            <!-- График SM-2 — фиксированная высота для корректного рендера на мобильных -->
+            <!-- График SM-2 -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0 text-white">Визуализация прогресса</h5>
@@ -186,48 +186,120 @@
         <!-- ══ ВКЛАДКА 2: ТЕСТЫ ══════════════════════════════════ -->
         <div class="tab-pane fade" id="test-panel" role="tabpanel">
 
-            <!-- График тестов -->
+            <!-- Сводка по группам: сколько пройдено / всего -->
+            {% with total_groups=0 done_groups=0 %}
+            <div class="row g-3 mb-4" id="group-summary-row">
+                {% for cat, groups in groups_stats.items %}
+                    {% for g in groups %}
+                        {% if g.best_score != None %}
+                            {# считается в JS ниже #}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            {% endwith %}
+
+            <!-- Сводные счётчики (считаем через JS из данных) -->
+            <div class="row g-3 mb-4" id="test-summary"></div>
+
+            <!-- Прогресс-сетка по каждому уровню HSK -->
+            {% for cat, groups in groups_stats.items %}
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0 text-white">Лучший результат по уровням</h5>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <span class="badge
+                            {% if cat == 'HSK1' %}bg-primary
+                            {% elif cat == 'HSK2' %}bg-success
+                            {% else %}bg-purple{% endif %}
+                            me-2">{{ cat }}</span>
+                        Группы
+                    </h5>
+                    <span class="text-muted small" id="counter-{{ cat }}"></span>
                 </div>
                 <div class="card-body">
-                    <div class="chart-wrap chart-wrap-sm">
-                        <canvas id="testChart"></canvas>
+                    <div class="row g-2" id="grid-{{ cat }}">
+                        {% for g in groups %}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <a href="{% url 'game_group' cat g.index %}"
+                               class="group-card text-decoration-none d-block p-3 rounded-3 border h-100
+                                   {% if g.best_score == None %}group-untouched
+                                   {% elif g.best_score >= 80 %}group-great
+                                   {% elif g.best_score >= 50 %}group-ok
+                                   {% else %}group-poor{% endif %}"
+                               data-cat="{{ cat }}"
+                               data-done="{% if g.best_score != None %}1{% else %}0{% endif %}"
+                               data-score="{{ g.best_score|default:'' }}">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="fw-semibold" style="font-size:0.82rem; line-height:1.3;">{{ g.name }}</span>
+                                    {% if g.best_score != None %}
+                                    <span class="score-badge ms-1 flex-shrink-0
+                                        {% if g.best_score >= 80 %}score-great
+                                        {% elif g.best_score >= 50 %}score-ok
+                                        {% else %}score-poor{% endif %}">
+                                        {{ g.best_score|floatformat:0 }}%
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                    <span class="text-muted" style="font-size:0.75rem;">{{ g.size }} слов</span>
+                                    {% if g.attempts %}
+                                    <span class="text-muted" style="font-size:0.72rem;">{{ g.attempts }}× попыток</span>
+                                    {% endif %}
+                                </div>
+                                {% if g.best_score != None %}
+                                <div class="mt-2">
+                                    <div class="group-progress-bar">
+                                        <div class="group-progress-fill
+                                            {% if g.best_score >= 80 %}fill-great
+                                            {% elif g.best_score >= 50 %}fill-ok
+                                            {% else %}fill-poor{% endif %}"
+                                             style="width: {{ g.best_score|floatformat:0 }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </a>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
+            {% endfor %}
 
-            <!-- История сессий -->
+            <!-- История случайных тест-сессий -->
+            {% if sessions %}
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0 text-white">История тестовых сессий</h5>
+                <div class="card-header">
+                    <h5 class="mb-0">История случайных тестов</h5>
                 </div>
                 <div class="card-body p-0">
-                    {% if sessions %}
                     <div class="table-responsive">
-                        <table class="table table-striped mb-0">
+                        <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th>Дата</th>
                                     <th>Уровень</th>
-                                    <th>Правильных</th>
-                                    <th class="d-none d-sm-table-cell">Всего слов</th>
-                                    <th style="min-width:130px;">Результат</th>
+                                    <th>Угадано</th>
+                                    <th>Слов</th>
+                                    <th style="min-width:120px;">Результат</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for session in sessions %}
                                 <tr>
-                                    <td style="font-size:0.82rem; white-space:nowrap;">{{ session.created_at|date:"d M Y H:i" }}</td>
-                                    <td><span class="badge bg-primary">{{ session.category }}</span></td>
-                                    <td>{{ session.correct_answers }}</td>
-                                    <td class="d-none d-sm-table-cell">
-                                        {% if session.category == 'HSK1' %}151
-                                        {% elif session.category == 'HSK2' %}250
-                                        {% elif session.category == 'HSK3' %}762
-                                        {% else %}—{% endif %}
+                                    <td style="font-size:0.82rem; white-space:nowrap;">
+                                        {{ session.created_at|date:"d M Y H:i" }}
                                     </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if session.category == 'HSK1' %}bg-primary
+                                            {% elif session.category == 'HSK2' %}bg-success
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ session.category }}
+                                        </span>
+                                    </td>
+                                    <td>{{ session.correct_answers }}</td>
+                                    <td>{{ session.total_answers }}</td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="progress flex-grow-1" style="height:8px; min-width:50px;">
@@ -248,13 +320,14 @@
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                        <div class="p-4 text-center text-muted">
-                            Нет завершённых тестовых сессий.
-                            <a href="{% url 'game_select_category' %}">Пройти тест</a>
-                        </div>
-                    {% endif %}
                 </div>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-2 mb-4">
+                <a href="{% url 'game_select_category' %}" class="btn btn-primary">
+                    🎮 Перейти к тестам
+                </a>
             </div>
 
         </div><!-- /test-panel -->
@@ -264,55 +337,97 @@
 </div>
 
 <style>
-/* Контейнер для графиков — фиксированная высота для корректной адаптации */
-.chart-wrap {
-    position: relative;
-    height: 280px;
-}
-.chart-wrap-sm {
-    height: 200px;
-}
+/* ── Контейнеры графиков ─────────────────────────────── */
+.chart-wrap       { position: relative; height: 280px; }
+.chart-wrap-sm    { height: 200px; }
 @media (max-width: 576px) {
-    .chart-wrap     { height: 220px; }
-    .chart-wrap-sm  { height: 180px; }
+    .chart-wrap   { height: 220px; }
+    .chart-wrap-sm{ height: 180px; }
+}
+
+/* ── Карточки групп ──────────────────────────────────── */
+.group-card {
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+}
+.group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,.12) !important;
+}
+
+/* Состояния */
+.group-untouched {
+    background: #f8f9fa;
+    border-color: #dee2e6 !important;
+    color: #6c757d;
+}
+.group-great {
+    background: #f0fdf4;
+    border-color: #86efac !important;
+    color: #166534;
+}
+.group-ok {
+    background: #fffbeb;
+    border-color: #fde68a !important;
+    color: #92400e;
+}
+.group-poor {
+    background: #fff1f2;
+    border-color: #fca5a5 !important;
+    color: #991b1b;
+}
+
+/* Значки с результатом */
+.score-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.score-great { background: #dcfce7; color: #166534; }
+.score-ok    { background: #fef9c3; color: #854d0e; }
+.score-poor  { background: #fee2e2; color: #991b1b; }
+
+/* Прогресс-бар внутри карточки */
+.group-progress-bar {
+    height: 4px;
+    background: rgba(0,0,0,.08);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.group-progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .4s ease;
+}
+.fill-great { background: #22c55e; }
+.fill-ok    { background: #f59e0b; }
+.fill-poor  { background: #ef4444; }
+
+/* Фиолетовый бейдж для HSK3 */
+.bg-purple { background-color: #7c3aed !important; }
+
+/* Сводные счётчики */
+.summary-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+.summary-card .num {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
 }
 </style>
 
-{{ test_stats|json_script:"test-stats-data" }}
 {{ sm2_stats|json_script:"sm2-stats-data" }}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    // ── Тестовый график ──────────────────────────────────────────────────
-    const testStats = JSON.parse(document.getElementById('test-stats-data').textContent);
-    new Chart(document.getElementById('testChart').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: ['HSK1', 'HSK2', 'HSK3'],
-            datasets: [{
-                label: 'Лучший результат (%)',
-                data: [
-                    testStats.HSK1?.best_percentage || 0,
-                    testStats.HSK2?.best_percentage || 0,
-                    testStats.HSK3?.best_percentage || 0,
-                ],
-                backgroundColor: ['#0d6efd88', '#198754aa', '#dc354588'],
-                borderColor:     ['#0d6efd',   '#198754',   '#dc3545'],
-                borderWidth: 2,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, max: 100,
-                     title: { display: true, text: '%' } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
 
     // ── SM-2 график ───────────────────────────────────────────────────────
     const sm2Stats = JSON.parse(document.getElementById('sm2-stats-data').textContent);
@@ -356,10 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true,
-                     title: { display: true, text: 'Карточки' } }
-            },
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Карточки' } } },
             plugins: {
                 legend: {
                     position: 'bottom',
@@ -368,6 +480,52 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // ── Счётчики прогресса групп ─────────────────────────────────────────
+    const cards  = document.querySelectorAll('.group-card');
+    let total = 0, done = 0, great = 0;
+    const perCat = {};
+
+    cards.forEach(c => {
+        const cat = c.dataset.cat;
+        if (!perCat[cat]) perCat[cat] = { total: 0, done: 0 };
+        perCat[cat].total++;
+        total++;
+        if (c.dataset.done === '1') {
+            perCat[cat].done++;
+            done++;
+            if (parseFloat(c.dataset.score) >= 80) great++;
+        }
+    });
+
+    // Обновляем счётчики рядом с заголовком каждого уровня
+    Object.entries(perCat).forEach(([cat, v]) => {
+        const el = document.getElementById(`counter-${cat}`);
+        if (el) el.textContent = `Пройдено: ${v.done} / ${v.total}`;
+    });
+
+    // Сводный блок сверху
+    const summary = document.getElementById('test-summary');
+    summary.innerHTML = `
+        <div class="col-4">
+            <div class="summary-card">
+                <div class="num text-primary">${done}</div>
+                <div class="text-muted small mt-1">Групп пройдено</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="summary-card">
+                <div class="num text-muted">${total - done}</div>
+                <div class="text-muted small mt-1">Ещё не начато</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="summary-card">
+                <div class="num text-success">${great}</div>
+                <div class="text-muted small mt-1">Отлично (≥80%)</div>
+            </div>
+        </div>
+    `;
 });
 </script>
 {% endblock %}
