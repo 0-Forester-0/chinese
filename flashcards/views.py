@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import CardForm, RegisterForm
 from .models import Card, Collection, GameSession
+from .hsk_order import HSK_GROUPS
 from .hsk_order import HSK1_ORDER, HSK2_ORDER, HSK3_ORDER
 from .hsk_data import HSK1_CHARACTERS
 from .hsk2_data import HSK2_CHARACTERS
@@ -171,7 +172,32 @@ def stats(request):
     now    = datetime.datetime.now()
 
     sm2_records = list(db['card_study_stats'].find({'user_id': request.user.id}))
+    group_results_raw = list(db['flashcards_group_results'].find({'user_id': request.user.id}))
     client.close()
+
+    group_lookup = {}
+    for r in group_results_raw:
+        key = f"{r['category']}_{r['group_index']}"
+        group_lookup[key] = {
+            'best_score': r.get('best_score', 0),
+            'last_score': r.get('last_score', 0),
+            'attempts':   r.get('attempts', 0),
+        }
+ 
+    groups_stats = {}
+    for cat, groups in HSK_GROUPS.items():
+        groups_stats[cat] = []
+        for i, g in enumerate(groups):
+            key = f"{cat}_{i}"
+            res = group_lookup.get(key)
+            groups_stats[cat].append({
+                'index':      i,
+                'name':       g['name'],
+                'size':       len(g['chars']),
+                'best_score': res['best_score'] if res else None,
+                'last_score': res['last_score'] if res else None,
+                'attempts':   res['attempts']   if res else 0,
+            })
 
     # Агрегат по категориям
     sm2_stats = {}
@@ -236,6 +262,7 @@ def stats(request):
         'sm2_stats':  sm2_stats,
         'sm2_total':  sm2_total,
         'upcoming':   upcoming,
+        'groups_stats': groups_stats,
     })
 
 @login_required
