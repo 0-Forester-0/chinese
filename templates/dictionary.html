@@ -18,9 +18,8 @@
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input type="text" id="search-input" class="form-control"
-                   placeholder="Пиньинь (niháo) или перевод на русском..."
-                   style="padding-left:42px; padding-right:42px; height:48px; font-size:0.95rem;"
-                   autofocus>
+                   placeholder="Пиньинь или перевод на русском..."
+                   style="padding-left:42px; padding-right:42px; height:48px; font-size:0.95rem;">
             <div id="search-clear" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; display:none; color:var(--text-muted);" onclick="clearSearch()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             </div>
@@ -45,12 +44,13 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
             <span id="results-count" style="font-size:0.78rem; color:var(--text-muted);"></span>
         </div>
-        <div style="border:1px solid var(--paper-border); border-radius:var(--radius-lg); overflow:hidden;">
+        <!-- table-responsive обеспечивает горизонтальный скролл на мобильных -->
+        <div class="table-responsive" style="border:1px solid var(--paper-border); border-radius:var(--radius-lg);">
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width:80px;">Слово</th>
-                        <th>Пиньинь</th>
+                        <th style="width:72px;">Слово</th>
+                        <th class="d-none d-sm-table-cell">Пиньинь</th>
                         <th>Перевод</th>
                         <th style="width:80px;">Уровень</th>
                     </tr>
@@ -103,6 +103,11 @@
         searchTimeout = setTimeout(() => doSearch(q), 250);
     });
 
+    // Определяем, является ли текущий экран мобильным
+    function isMobile() {
+        return window.innerWidth < 576;
+    }
+
     async function doSearch(query) {
         try {
             const resp = await fetch("{% url 'dictionary_search' %}", {
@@ -123,11 +128,12 @@
 
                 results.forEach(r => {
                     const tr = document.createElement('tr');
+                    // Пиньинь скрыт на очень маленьких экранах через Bootstrap-класс
                     tr.innerHTML = `
-                        <td style="font-family:'Noto Serif SC',serif; font-size:1.6rem; color:var(--ink); padding:10px 16px;">${r.character}</td>
-                        <td style="color:var(--text-muted); font-size:0.875rem;">${r.pinyin}</td>
+                        <td style="font-family:'Noto Serif SC',serif; font-size:1.6rem; color:var(--ink); padding:10px 16px; white-space:nowrap;">${r.character}</td>
+                        <td class="d-none d-sm-table-cell" style="color:var(--text-muted); font-size:0.875rem; white-space:nowrap;">${r.pinyin}</td>
                         <td style="font-size:0.875rem;">${r.meaning}</td>
-                        <td><span class="badge bg-secondary">${r.category}</span></td>
+                        <td style="white-space:nowrap;"><span class="badge bg-secondary">${r.category}</span></td>
                     `;
                     resultsBody.appendChild(tr);
                 });
