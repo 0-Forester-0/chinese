@@ -570,13 +570,11 @@ def end_game(request, session_id):
         if request.method == 'POST':
             data = json.loads(request.body)
             answer_history = data.get('answer_history', {})
-            total_answers = data.get('total_answers', session.get('total_answers', 0))
-            # Если JS не отправил total_answers - вычисляем из answer_history
-            if total_answers == 0 and answer_history:
+            if answer_history:
                 total_answers = sum(h.get('total', 0) for h in answer_history.values())
-            # Если answer_history тоже пуст - берём count из сессии (кол-во карточек)
-            if total_answers == 0:
-                total_answers = session.get('count', 0)
+            else:
+                total_answers = data.get('total_answers', session.get('count', 0))
+                
             remaining_cards = data.get('remaining_cards', session.get('remaining_cards', []))
             is_finished = data.get('is_finished', False)
             correct_answers = data.get('correct_answers', session.get('correct_answers', 0))
