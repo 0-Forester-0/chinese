@@ -379,19 +379,30 @@ def game_group(request, category, group_index):
     if not group_chars:
         return redirect('game_select_category')
  
-    # Пул неверных ответов — все значения из всех уровней HSK
-    all_meanings = []
-    for cat_key, cat_words in HSK_CHARACTERS.items():
-        for char, data in cat_words.items():
-            all_meanings.append(data['meaning'])
-    all_meanings = list(set(all_meanings))
- 
-    # Строим карточки: каждая содержит правильный и 3 неверных ответа
+    # Значения слов внутри группы (для неверных ответов — сначала из группы)
+    group_meanings = [cat_dict[c]['meaning'] for c in group_chars]
+    
+    # Fallback: значения из той же категории HSK (если группа маленькая)
+    category_meanings = list({
+        data['meaning']
+        for char, data in cat_dict.items()
+    })
+    
+    # Строим карточки
     cards_data = []
     for char in group_chars:
         char_data = cat_dict[char]
         correct = char_data['meaning']
-        wrong_pool = [m for m in all_meanings if m != correct]
+    
+        # 1. Неверные ответы — сначала из той же группы
+        wrong_pool = [m for m in group_meanings if m != correct]
+    
+        # 2. Если в группе < 3 других слов — добираем из той же категории
+        if len(wrong_pool) < 3:
+            extra = [m for m in category_meanings if m != correct and m not in wrong_pool]
+            random.shuffle(extra)
+            wrong_pool += extra
+    
         wrong_answers = random.sample(wrong_pool, min(3, len(wrong_pool)))
         cards_data.append({
             'character':     char,
