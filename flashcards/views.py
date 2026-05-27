@@ -200,7 +200,7 @@ def stats(request):
 
     # Агрегат по категориям
     sm2_stats = {}
-    for cat, total in HSK_TOTAL.items():
+    for cat, total in HSK_WORDS_COUNT.items():
         cat_records = [r for r in sm2_records if r.get('category') == cat]
 
         studied     = len(cat_records)
@@ -569,7 +569,7 @@ def end_game(request, session_id):
         
         if request.method == 'POST':
             data = json.loads(request.body)
-            correct_answers = data.get('correct_answers', session.get('correct_answers', 0))
+            answer_history = data.get('answer_history', {})
             total_answers = data.get('total_answers', session.get('total_answers', 0))
             # Если JS не отправил total_answers - вычисляем из answer_history
             if total_answers == 0 and answer_history:
@@ -578,8 +578,8 @@ def end_game(request, session_id):
             if total_answers == 0:
                 total_answers = session.get('count', 0)
             remaining_cards = data.get('remaining_cards', session.get('remaining_cards', []))
-            answer_history = data.get('answer_history', {})
             is_finished = data.get('is_finished', False)
+            correct_answers = data.get('correct_answers', session.get('correct_answers', 0))
 
             print(f"Received answer_history: {answer_history}")
 
