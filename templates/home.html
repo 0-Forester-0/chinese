@@ -41,9 +41,9 @@
                     <thead>
                         <tr>
                             <th>Иероглиф</th>
-                            <th>Пиньинь</th>
+                            <th class="d-none d-sm-table-cell">Пиньинь</th>
                             <th>Перевод</th>
-                            <th>Точность</th>
+                            <th style="min-width:130px;">Точность</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,14 +54,14 @@
                                     {{ word.character }}
                                 </span>
                             </td>
-                            <td class="text-muted">{{ word.pinyin }}</td>
-                            <td>{{ word.meaning }}</td>
+                            <td class="text-muted d-none d-sm-table-cell">{{ word.pinyin }}</td>
+                            <td style="font-size:0.85rem;">{{ word.meaning }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height:6px; min-width:60px;">
+                                    <div class="progress flex-grow-1" style="height:6px; min-width:50px;">
                                         <div class="progress-bar bg-danger" style="width:{{ word.percentage }}%"></div>
                                     </div>
-                                    <span style="font-size:0.78rem; font-weight:600; color:var(--vermillion); min-width:40px;">
+                                    <span style="font-size:0.78rem; font-weight:600; color:var(--vermillion); white-space:nowrap;">
                                         {{ word.percentage }}%
                                     </span>
                                 </div>
@@ -94,9 +94,9 @@
                     <thead>
                         <tr>
                             <th>Иероглиф</th>
-                            <th>Пиньинь</th>
+                            <th class="d-none d-sm-table-cell">Пиньинь</th>
                             <th>Перевод</th>
-                            <th>Точность</th>
+                            <th style="min-width:130px;">Точность</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,14 +107,14 @@
                                     {{ word.character }}
                                 </span>
                             </td>
-                            <td class="text-muted">{{ word.pinyin }}</td>
-                            <td>{{ word.meaning }}</td>
+                            <td class="text-muted d-none d-sm-table-cell">{{ word.pinyin }}</td>
+                            <td style="font-size:0.85rem;">{{ word.meaning }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height:6px; min-width:60px;">
+                                    <div class="progress flex-grow-1" style="height:6px; min-width:50px;">
                                         <div class="progress-bar" style="width:{{ word.percentage }}%; background:#1e5738;"></div>
                                     </div>
-                                    <span style="font-size:0.78rem; font-weight:600; color:#1e5738; min-width:40px;">
+                                    <span style="font-size:0.78rem; font-weight:600; color:#1e5738; white-space:nowrap;">
                                         {{ word.percentage }}%
                                     </span>
                                 </div>
