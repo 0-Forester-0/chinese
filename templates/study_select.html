@@ -6,10 +6,110 @@
 <div class="col-12 col-md-9 col-lg-7">
 
     <!-- Header -->
-    <div class="mb-5">
+    <div class="mb-4">
         <h1 class="page-title">Изучение иероглифов</h1>
         <p class="page-subtitle">Алгоритм SM-2 подберёт карточки, которые пора повторить</p>
     </div>
+
+    <!-- ── SM-2 INFO CARD ─────────────────────────────────────── -->
+    <div class="mb-4" style="background:var(--surface-raised); border:1px solid var(--paper-border); border-radius:var(--radius-lg); overflow:hidden;">
+
+        <!-- Заголовок — кликабельный аккордеон -->
+        <button class="w-100 d-flex align-items-center justify-content-between gap-3 p-4"
+                style="background:none; border:none; cursor:pointer; text-align:left;"
+                data-bs-toggle="collapse" data-bs-target="#sm2-info"
+                aria-expanded="false">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:40px; height:40px; border-radius:var(--radius-md); background:linear-gradient(135deg,var(--ink),var(--ink-soft)); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-weight:600; font-size:0.92rem; color:var(--text-primary);">Как работает алгоритм SM-2?</div>
+                    <div style="font-size:0.78rem; color:var(--text-muted);">Нажмите, чтобы узнать подробнее</div>
+                </div>
+            </div>
+            <svg class="sm2-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0; transition:transform .25s;">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </button>
+
+        <!-- Раскрывающееся содержимое -->
+        <div class="collapse" id="sm2-info">
+            <div style="padding:0 20px 20px; border-top:1px solid var(--paper-border);">
+
+                <p style="font-size:0.875rem; color:var(--text-secondary); margin:16px 0 20px; line-height:1.65;">
+                    <strong>SM-2</strong> (SuperMemo 2) — научно обоснованный алгоритм интервального повторения.
+                    Его суть проста: карточки, которые вы знаете хорошо, показываются редко; 
+                    те, что даются с трудом — чаще. Так вы тратите время только на то, что действительно нужно повторить.
+                </p>
+
+                <!-- Как проходит сессия -->
+                <div style="font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:12px;">Как проходит сессия</div>
+                <div class="d-flex flex-column gap-2 mb-4">
+                    <div class="d-flex gap-3 align-items-start">
+                        <div style="width:24px; height:24px; border-radius:50%; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">1</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                            <strong style="color:var(--text-primary);">Новые слова</strong> — сначала вы видите иероглиф, пиньинь и перевод. Просто прочитайте и запомните.
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3 align-items-start">
+                        <div style="width:24px; height:24px; border-radius:50%; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">2</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                            <strong style="color:var(--text-primary);">Проверка</strong> — появляется только иероглиф. Вспомните перевод, затем откройте ответ.
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3 align-items-start">
+                        <div style="width:24px; height:24px; border-radius:50%; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">3</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+                            <strong style="color:var(--text-primary);">Самооценка</strong> — честно скажите, насколько легко далось слово. Алгоритм рассчитает, когда показать карточку снова.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Интервалы -->
+                <div style="font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:12px;">Когда карточка вернётся</div>
+                <div class="row g-2 mb-4">
+                    <div class="col-4">
+                        <div style="padding:12px 10px; text-align:center; background:#fff1ee; border-radius:var(--radius-md); border:1px solid #fecaca;">
+                            <div style="font-size:1.3rem; margin-bottom:4px;">😰</div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--vermillion);">Не знаю</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Завтра</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div style="padding:12px 10px; text-align:center; background:#fffbeb; border-radius:var(--radius-md); border:1px solid #fde68a;">
+                            <div style="font-size:1.3rem; margin-bottom:4px;">🤔</div>
+                            <div style="font-size:0.8rem; font-weight:600; color:var(--gold);">С трудом</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Через 3–6 дней</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div style="padding:12px 10px; text-align:center; background:#f0fdf4; border-radius:var(--radius-md); border:1px solid #bbf7d0;">
+                            <div style="font-size:1.3rem; margin-bottom:4px;">😊</div>
+                            <div style="font-size:0.8rem; font-weight:600; color:#1e5738;">Легко</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Неделя и больше</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Совет -->
+                <div style="display:flex; gap:10px; align-items:flex-start; background:#eff8ff; border:1px solid #bae6fd; border-radius:var(--radius-md); padding:12px 14px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c4a6e" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <p style="margin:0; font-size:0.82rem; color:#0c4a6e; line-height:1.55;">
+                        <strong>Главное правило:</strong> занимайтесь регулярно, хотя бы по 5–10 минут в день.
+                        Алгоритм работает только при постоянном использовании — именно повторение в нужный момент
+                        закрепляет слова в долгосрочной памяти.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div><!-- /sm2 info -->
 
     <!-- Config card -->
     <div class="card mb-4">
@@ -30,7 +130,6 @@
                         </label>
                         {% endfor %}
                     </div>
-                    <!-- Hidden select for form submission -->
                     <select name="category" id="category" class="d-none">
                         {% for cat in categories %}
                             <option value="{{ cat }}">{{ cat }}</option>
@@ -78,38 +177,6 @@
         </div>
     </div>
 
-    <!-- Rating guide -->
-    <div class="card">
-        <div class="card-body" style="padding:20px;">
-            <h6 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:16px;">
-                Система оценок
-            </h6>
-            <div class="row g-3">
-                <div class="col-4">
-                    <div style="padding:12px; text-align:center; background:#fff1ee; border-radius:var(--radius-md); border:1px solid #fecaca;">
-                        <div style="font-size:1.3rem; margin-bottom:4px;">😰</div>
-                        <div style="font-size:0.8rem; font-weight:600; color:var(--vermillion); margin-bottom:2px;">Не знаю</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted);">Вернётся завтра</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div style="padding:12px; text-align:center; background:#fffbeb; border-radius:var(--radius-md); border:1px solid #fde68a;">
-                        <div style="font-size:1.3rem; margin-bottom:4px;">🤔</div>
-                        <div style="font-size:0.8rem; font-weight:600; color:var(--gold); margin-bottom:2px;">С трудом</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted);">Через несколько дней</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div style="padding:12px; text-align:center; background:#f0fdf4; border-radius:var(--radius-md); border:1px solid #bbf7d0;">
-                        <div style="font-size:1.3rem; margin-bottom:4px;">😊</div>
-                        <div style="font-size:0.8rem; font-weight:600; color:#1e5738; margin-bottom:2px;">Легко</div>
-                        <div style="font-size:0.72rem; color:var(--text-muted);">Интервал растёт</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 </div>
 
@@ -137,16 +204,19 @@
         color: #fff;
     }
     .form-range { cursor: pointer; }
+
+    /* Поворот шеврона при раскрытии */
+    [data-bs-target="#sm2-info"][aria-expanded="true"] .sm2-chevron {
+        transform: rotate(180deg);
+    }
 </style>
 
 <script>
-    // Sync range and number inputs
     const countRange = document.getElementById('count-range');
     const countInput = document.getElementById('count');
     countRange.addEventListener('input', () => countInput.value = countRange.value);
     countInput.addEventListener('input', () => countRange.value = countInput.value);
 
-    // Category pill sync with hidden select
     const catSelect = document.getElementById('category');
     document.querySelectorAll('.cat-radio').forEach(radio => {
         radio.addEventListener('change', () => {
@@ -170,7 +240,6 @@
         } catch(e) { el.classList.add('d-none'); }
     }
 
-    // Load on init
     const defaultCat = document.querySelector('.cat-radio:checked');
     if (defaultCat) loadDueStats(defaultCat.value);
 </script>
