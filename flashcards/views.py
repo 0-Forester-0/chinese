@@ -692,11 +692,10 @@ def _sm2_update(stats, quality):
 
 @login_required
 def study_select(request):
-    """Страница выбора категории и количества карточек."""
+    """Страница выбора категории для изучения."""
     if request.method == 'POST':
         category = request.POST.get('category', 'HSK1')
-        count    = max(1, min(200, int(request.POST.get('count', 20))))
-        return redirect('study_session_start', category=category, count=count)
+        return redirect('study_session_start', category=category)
     return render(request, 'study_select.html', {
         'categories': ['HSK1', 'HSK2', 'HSK3']
     })
@@ -737,19 +736,19 @@ def study_due_count(request):
 
 
 @login_required
-def study_session_start(request, category, count):
+def study_session_start(request, category):
     """Формирует список карточек для сессии и рендерит страницу изучения."""
     if category not in HSK_CHARACTERS:
         return redirect('study_select')
 
-    count  = max(1, min(200, int(count)))
+    NEW_PER_SESSION = 5
+
     client = MongoClient(MONGO_URI)
     db     = client['chinese_srs']
     now    = datetime.datetime.now()
 
     all_chars = get_ordered_chars(category)
 
-    # Загружаем статистику пользователя по этой категории
     all_stats = {
         s['character']: s
         for s in db['card_study_stats'].find(
@@ -758,7 +757,7 @@ def study_session_start(request, category, count):
     }
     client.close()
 
-    # 1. Карточки, срок повторения которых наступил
+    # Все просроченные, отсортированные по дате
     due_cards = [
         char for char in all_chars
         if char in all_stats
@@ -766,13 +765,10 @@ def study_session_start(request, category, count):
     ]
     due_cards.sort(key=lambda c: all_stats[c].get('next_review', now))
 
-    # 2. Новые карточки (ещё никогда не изучались)
-    NEW_PER_SESSION = 5
-    new_cards = [char for char in all_chars if char not in all_stats]
-    new_cards = new_cards[:NEW_PER_SESSION]
+    # 5 новых карточек
+    new_cards = [char for char in all_chars if char not in all_stats][:NEW_PER_SESSION]
 
-    # Объединяем: сначала просроченные, затем новые
-    session_chars = (due_cards + new_cards)[:count]
+    session_chars = due_cards + new_cards
 
     cards_data = [
         {
