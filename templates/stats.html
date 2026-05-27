@@ -4,9 +4,6 @@
 <div class="container mt-4">
     <h1 class="display-4 mb-4">Статистика</h1>
 
-    <!-- ═══════════════════════════════════════════════════════
-         ВКЛАДКИ
-    ═══════════════════════════════════════════════════════ -->
     <ul class="nav nav-tabs mb-4" id="statsTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="sm2-tab" data-bs-toggle="tab"
@@ -24,9 +21,7 @@
 
     <div class="tab-content">
 
-        <!-- ══════════════════════════════════════════════════
-             ВКЛАДКА 1: SM-2
-        ══════════════════════════════════════════════════ -->
+        <!-- ══ ВКЛАДКА 1: SM-2 ════════════════════════════════════ -->
         <div class="tab-pane fade show active" id="sm2-panel" role="tabpanel">
 
             <!-- Сводные карточки -->
@@ -77,28 +72,20 @@
                             <h6 class="fw-bold">{{ cat }}
                                 <span class="text-muted fw-normal">({{ s.total }} слов)</span>
                             </h6>
-
-                            <!-- Изучено -->
                             <div class="d-flex justify-content-between small mb-1">
                                 <span>Изучено</span>
                                 <span>{{ s.studied }} / {{ s.total }} ({{ s.studied_pct }}%)</span>
                             </div>
                             <div class="progress mb-2" style="height:8px;">
-                                <div class="progress-bar bg-primary"
-                                     style="width: {{ s.studied_pct }}%"></div>
+                                <div class="progress-bar bg-primary" style="width: {{ s.studied_pct }}%"></div>
                             </div>
-
-                            <!-- Освоено -->
                             <div class="d-flex justify-content-between small mb-1">
                                 <span>Освоено</span>
                                 <span>{{ s.mastered }} / {{ s.total }} ({{ s.mastered_pct }}%)</span>
                             </div>
                             <div class="progress mb-3" style="height:8px;">
-                                <div class="progress-bar bg-success"
-                                     style="width: {{ s.mastered_pct }}%"></div>
+                                <div class="progress-bar bg-success" style="width: {{ s.mastered_pct }}%"></div>
                             </div>
-
-                            <!-- Метрики -->
                             <div class="row text-center small g-1">
                                 <div class="col-4">
                                     <div class="bg-light rounded p-1">
@@ -125,19 +112,21 @@
                 </div>
             </div>
 
-            <!-- График SM-2 (Chart.js) -->
+            <!-- График SM-2 — фиксированная высота для корректного рендера на мобильных -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">Визуализация прогресса</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="sm2Chart" height="80"></canvas>
+                    <div class="chart-wrap">
+                        <canvas id="sm2Chart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <!-- Таблица ближайших карточек к повторению -->
+            <!-- Таблица ближайших карточек -->
             <div class="card shadow-sm mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="mb-0">Ближайшие карточки к повторению</h5>
                     <a href="{% url 'study_select' %}" class="btn btn-success btn-sm">
                         Начать повторение →
@@ -150,12 +139,12 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Иероглиф</th>
-                                    <th>Пиньинь</th>
+                                    <th class="d-none d-sm-table-cell">Пиньинь</th>
                                     <th>Перевод</th>
-                                    <th>Уровень</th>
-                                    <th>Повторений</th>
-                                    <th>Интервал (дн.)</th>
-                                    <th>EF</th>
+                                    <th class="d-none d-md-table-cell">Уровень</th>
+                                    <th class="d-none d-lg-table-cell">Повторений</th>
+                                    <th class="d-none d-lg-table-cell">Интервал (дн.)</th>
+                                    <th class="d-none d-lg-table-cell">EF</th>
                                     <th>Следующий показ</th>
                                 </tr>
                             </thead>
@@ -163,13 +152,13 @@
                                 {% for r in upcoming %}
                                 <tr {% if r.overdue %}class="table-warning"{% endif %}>
                                     <td class="fw-bold fs-5">{{ r.character }}</td>
-                                    <td>{{ r.pinyin }}</td>
-                                    <td>{{ r.meaning }}</td>
-                                    <td><span class="badge bg-secondary">{{ r.category }}</span></td>
-                                    <td>{{ r.n }}</td>
-                                    <td>{{ r.interval }}</td>
-                                    <td>{{ r.ef }}</td>
-                                    <td>
+                                    <td class="d-none d-sm-table-cell">{{ r.pinyin }}</td>
+                                    <td style="font-size:0.85rem; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.meaning }}</td>
+                                    <td class="d-none d-md-table-cell"><span class="badge bg-secondary">{{ r.category }}</span></td>
+                                    <td class="d-none d-lg-table-cell">{{ r.n }}</td>
+                                    <td class="d-none d-lg-table-cell">{{ r.interval }}</td>
+                                    <td class="d-none d-lg-table-cell">{{ r.ef }}</td>
+                                    <td style="white-space:nowrap; font-size:0.82rem;">
                                         {% if r.overdue %}
                                             <span class="badge bg-warning text-dark">
                                                 ⚠ {{ r.next_review_str }}
@@ -194,9 +183,7 @@
         </div><!-- /sm2-panel -->
 
 
-        <!-- ══════════════════════════════════════════════════
-             ВКЛАДКА 2: ТЕСТЫ
-        ══════════════════════════════════════════════════ -->
+        <!-- ══ ВКЛАДКА 2: ТЕСТЫ ══════════════════════════════════ -->
         <div class="tab-pane fade" id="test-panel" role="tabpanel">
 
             <!-- График тестов -->
@@ -205,7 +192,9 @@
                     <h5 class="mb-0">Лучший результат по уровням</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="testChart" height="80"></canvas>
+                    <div class="chart-wrap chart-wrap-sm">
+                        <canvas id="testChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -223,17 +212,17 @@
                                     <th>Дата</th>
                                     <th>Уровень</th>
                                     <th>Правильных</th>
-                                    <th>Всего слов</th>
-                                    <th>Результат</th>
+                                    <th class="d-none d-sm-table-cell">Всего слов</th>
+                                    <th style="min-width:130px;">Результат</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for session in sessions %}
                                 <tr>
-                                    <td>{{ session.created_at|date:"d M Y H:i" }}</td>
+                                    <td style="font-size:0.82rem; white-space:nowrap;">{{ session.created_at|date:"d M Y H:i" }}</td>
                                     <td><span class="badge bg-primary">{{ session.category }}</span></td>
                                     <td>{{ session.correct_answers }}</td>
-                                    <td>
+                                    <td class="d-none d-sm-table-cell">
                                         {% if session.category == 'HSK1' %}151
                                         {% elif session.category == 'HSK2' %}250
                                         {% elif session.category == 'HSK3' %}762
@@ -241,7 +230,7 @@
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
-                                            <div class="progress flex-grow-1" style="height:8px; min-width:60px;">
+                                            <div class="progress flex-grow-1" style="height:8px; min-width:50px;">
                                                 <div class="progress-bar
                                                     {% if session.calculated_percentage >= 80 %}bg-success
                                                     {% elif session.calculated_percentage >= 50 %}bg-warning
@@ -249,7 +238,7 @@
                                                      style="width:{{ session.calculated_percentage }}%">
                                                 </div>
                                             </div>
-                                            <span class="small fw-bold">
+                                            <span class="small fw-bold" style="white-space:nowrap;">
                                                 {{ session.calculated_percentage|floatformat:1 }}%
                                             </span>
                                         </div>
@@ -274,7 +263,21 @@
     <a href="{% url 'home' %}" class="btn btn-secondary mb-4">← На главную</a>
 </div>
 
-<!-- Данные для графиков -->
+<style>
+/* Контейнер для графиков — фиксированная высота для корректной адаптации */
+.chart-wrap {
+    position: relative;
+    height: 280px;
+}
+.chart-wrap-sm {
+    height: 200px;
+}
+@media (max-width: 576px) {
+    .chart-wrap     { height: 220px; }
+    .chart-wrap-sm  { height: 180px; }
+}
+</style>
+
 {{ test_stats|json_script:"test-stats-data" }}
 {{ sm2_stats|json_script:"sm2-stats-data" }}
 
@@ -301,6 +304,8 @@ document.addEventListener('DOMContentLoaded', function () {
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: { beginAtZero: true, max: 100,
                      title: { display: true, text: '%' } }
@@ -349,12 +354,17 @@ document.addEventListener('DOMContentLoaded', function () {
             ]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
                 y: { beginAtZero: true,
                      title: { display: true, text: 'Карточки' } }
             },
             plugins: {
-                legend: { position: 'bottom' }
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 11 }, boxWidth: 14, padding: 10 }
+                }
             }
         }
     });
