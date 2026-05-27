@@ -155,7 +155,7 @@ def stats(request):
     }
     for session in sessions:
         session.calculated_percentage = (
-            round((session.correct_answers / session.total_answers) * 100, 1)
+            round((session.correct_answers / session.total_answers) * 10, 1)
             if session.total_answers > 0 else 0.0
         )
     for cat in ['HSK1', 'HSK2', 'HSK3']:
