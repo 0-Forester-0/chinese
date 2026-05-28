@@ -2,40 +2,519 @@
 {% load static %}
 {% block content %}
 
-<!-- ── PAGE HEADER ─────────────────────────────────────────── -->
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-5">
-    <div>
-        <h1 class="page-title">Добро пожаловать 👋</h1>
-        <p class="page-subtitle">Продолжите обучение с того места, где остановились</p>
+<style>
+    /* ── TODAY HERO ──────────────────────────────────────────────── */
+    .today-hero {
+        background: var(--ink);
+        border-radius: var(--radius-xl);
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .today-hero::before {
+        content: '今';
+        position: absolute;
+        right: -12px;
+        top: -20px;
+        font-family: 'Noto Serif SC', serif;
+        font-size: 9rem;
+        color: rgba(255,255,255,0.04);
+        line-height: 1;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .today-hero-title {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.4);
+        margin-bottom: 6px;
+    }
+
+    .today-hero-heading {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 20px;
+        line-height: 1.25;
+    }
+
+    .today-hero-heading span {
+        color: var(--vermillion-light);
+    }
+
+    .today-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .today-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 100px;
+        padding: 7px 14px;
+    }
+
+    .today-pill-num {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+    }
+
+    .today-pill-label {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        white-space: nowrap;
+    }
+
+    .today-pill-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .today-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-today-primary {
+        background: var(--vermillion);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 12px 24px;
+        font-family: 'Sora', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-today-primary:hover {
+        background: var(--vermillion-dark);
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(217,79,43,0.35);
+    }
+
+    .btn-today-secondary {
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.75);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: var(--radius-md);
+        padding: 12px 20px;
+        font-family: 'Sora', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-today-secondary:hover {
+        background: rgba(255,255,255,0.14);
+        color: #fff;
+    }
+
+    /* ── QUICK STATS ─────────────────────────────────────────────── */
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .quick-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 400px) {
+        .quick-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .qs-card {
+        background: var(--surface);
+        border: 1px solid var(--paper-border);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        transition: all 0.2s;
+    }
+
+    .qs-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .qs-icon {
+        font-size: 1.25rem;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .qs-num {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 3px;
+        color: var(--ink);
+    }
+
+    .qs-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+    }
+
+    /* ── STREAK ──────────────────────────────────────────────────── */
+    .streak-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #ff6b35, #f7931e);
+        border-radius: 100px;
+        padding: 5px 14px 5px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(247,147,30,0.35);
+    }
+
+    /* ── HEATMAP ─────────────────────────────────────────────────── */
+    .heatmap-wrap {
+        background: var(--surface);
+        border: 1px solid var(--paper-border);
+        border-radius: var(--radius-lg);
+        padding: 20px 20px 16px;
+        margin-bottom: 24px;
+    }
+
+    .heatmap-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .heatmap-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .heatmap-grid {
+        display: flex;
+        gap: 3px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .heatmap-week {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .heatmap-cell {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        background: var(--paper-warm);
+        flex-shrink: 0;
+        transition: transform 0.1s;
+        cursor: default;
+        position: relative;
+    }
+
+    .heatmap-cell:hover { transform: scale(1.4); z-index: 1; }
+
+    .heatmap-cell[data-level="1"] { background: rgba(14,27,46,0.20); }
+    .heatmap-cell[data-level="2"] { background: rgba(14,27,46,0.40); }
+    .heatmap-cell[data-level="3"] { background: rgba(14,27,46,0.65); }
+    .heatmap-cell[data-level="4"] { background: var(--ink); }
+
+    .heatmap-legend {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 10px;
+        justify-content: flex-end;
+    }
+
+    .heatmap-legend span {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+    }
+
+    .heatmap-legend-cell {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+    }
+
+    /* ── WEAK WORDS COMPACT ──────────────────────────────────────── */
+    .attention-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: #fff7f5;
+        border: 1.5px solid #fcd0c6;
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-decoration: none;
+    }
+
+    .attention-strip:hover {
+        background: #fff0ec;
+    }
+
+    .attention-strip-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .attention-strip-count {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--vermillion);
+        line-height: 1;
+    }
+
+    .attention-strip-text strong {
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 1px;
+    }
+
+    .attention-strip-text span {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .mastered-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: #f0fdf4;
+        border: 1.5px solid #bbf7d0;
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        margin-bottom: 24px;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-decoration: none;
+    }
+
+    .mastered-strip:hover { background: #e8faf0; }
+
+    .mastered-strip-count {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e5738;
+        line-height: 1;
+    }
+
+    .mastered-strip-text strong {
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 1px;
+    }
+
+    .mastered-strip-text span {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    /* Expandable word tables */
+    .words-expand {
+        display: none;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+
+    .words-expand.open { display: block; }
+
+    /* ── CARDS SECTION ───────────────────────────────────────────── */
+    .card-mini {
+        background: var(--surface-raised);
+        border: 1px solid var(--paper-border);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        height: 100%;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .card-mini:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 576px) {
+        .today-hero { padding: 20px; }
+        .today-hero::before { font-size: 6rem; }
+        .today-hero-heading { font-size: 1.2rem; }
+    }
+</style>
+
+<!-- ── TODAY HERO ──────────────────────────────────────────────────── -->
+<div class="today-hero">
+
+    <div class="today-hero-title">На сегодня</div>
+
+    {% if sm2_due_count > 0 or sm2_new_count > 0 %}
+        <div class="today-hero-heading">
+            {% if sm2_due_count > 0 and sm2_new_count > 0 %}
+                <span>{{ sm2_due_count }}</span> карточек к повторению
+                и <span>{{ sm2_new_count }}</span> новых
+            {% elif sm2_due_count > 0 %}
+                <span>{{ sm2_due_count }}</span> карточек ждут повторения
+            {% else %}
+                <span>{{ sm2_new_count }}</span> новых слов готовы к изучению
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="today-hero-heading">Всё сделано — отличный день 🎉</div>
+    {% endif %}
+
+    <div class="today-pills">
+        <div class="today-pill">
+            <div class="today-pill-dot" style="background:var(--vermillion-light);"></div>
+            <div class="today-pill-num">{{ sm2_due_count|default:"0" }}</div>
+            <div class="today-pill-label">к повторению</div>
+        </div>
+        <div class="today-pill">
+            <div class="today-pill-dot" style="background:#60a5fa;"></div>
+            <div class="today-pill-num">{{ sm2_new_count|default:"0" }}</div>
+            <div class="today-pill-label">новых слов</div>
+        </div>
+        <div class="today-pill">
+            <div class="today-pill-dot" style="background:var(--gold);"></div>
+            <div class="today-pill-num">≈{{ today_minutes|default:"5" }} мин</div>
+            <div class="today-pill-label">на сессию</div>
+        </div>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'study_select' %}" class="btn btn-success btn-lg">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            Изучать (SM-2)
+
+    <div class="today-actions">
+        <a href="{% url 'study_select' %}" class="btn-today-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Начать изучение
         </a>
-        <a href="{% url 'game_select_category' %}" class="btn btn-primary btn-lg">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <a href="{% url 'game_select_category' %}" class="btn-today-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Тест по HSK
         </a>
     </div>
 </div>
 
-<!-- ── PROGRESS SECTION ───────────────────────────────────────── -->
+<!-- ── QUICK STATS ─────────────────────────────────────────────────── -->
+<div class="quick-stats">
+    <div class="qs-card">
+        <span class="qs-icon">📖</span>
+        <div class="qs-num" style="color:var(--ink);">{{ sm2_total_studied|default:"0" }}</div>
+        <div class="qs-label">Изучено всего</div>
+    </div>
+    <div class="qs-card">
+        <span class="qs-icon">✅</span>
+        <div class="qs-num" style="color:#1e5738;">{{ sm2_total_mastered|default:"0" }}</div>
+        <div class="qs-label">Освоено</div>
+    </div>
+    <div class="qs-card">
+        <span class="qs-icon">🔥</span>
+        <div class="qs-num" style="color:#f7931e;">
+            {{ streak_days|default:"0" }}
+        </div>
+        <div class="qs-label">Дней подряд</div>
+    </div>
+    <div class="qs-card">
+        <span class="qs-icon">🎯</span>
+        <div class="qs-num" style="color:var(--vermillion);">{{ week_accuracy|default:"—" }}%</div>
+        <div class="qs-label">Точность за неделю</div>
+    </div>
+</div>
+
+<!-- ── ACTIVITY HEATMAP ────────────────────────────────────────────── -->
+<div class="heatmap-wrap">
+    <div class="heatmap-header">
+        <div>
+            <div class="heatmap-title">Активность за 3 месяца</div>
+        </div>
+        {% if streak_days > 0 %}
+        <div class="streak-badge">
+            🔥 {{ streak_days }} {{ streak_days|pluralize:"день,дня,дней" }} подряд
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="heatmap-grid" id="heatmap-grid"></div>
+
+    <div class="heatmap-legend">
+        <span>Меньше</span>
+        <div class="heatmap-legend-cell" style="background:var(--paper-warm); border:1px solid var(--paper-border);"></div>
+        <div class="heatmap-legend-cell" data-level="1" style="background:rgba(14,27,46,0.20);"></div>
+        <div class="heatmap-legend-cell" data-level="2" style="background:rgba(14,27,46,0.40);"></div>
+        <div class="heatmap-legend-cell" data-level="3" style="background:rgba(14,27,46,0.65);"></div>
+        <div class="heatmap-legend-cell" data-level="4" style="background:var(--ink);"></div>
+        <span>Больше</span>
+    </div>
+</div>
+
+<!-- ── PROGRESS SECTION ────────────────────────────────────────────── -->
 <div class="card mb-4">
     <div class="card-header d-flex align-items-center gap-2" style="background: var(--ink) !important;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        <h5 class="mb-0 text-white" style="font-size:0.9rem; font-weight:600; letter-spacing:0.02em;">Ваш прогресс в тестах</h5>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <h5 class="mb-0 text-white" style="font-size:0.875rem; font-weight:600;">Прогресс по словам</h5>
+        <a href="{% url 'stats' %}" class="btn btn-sm ms-auto"
+           style="background:rgba(255,255,255,0.10); color:rgba(255,255,255,0.8); border:none; font-size:0.75rem; padding:4px 12px; border-radius:100px;">
+            Полная статистика →
+        </a>
     </div>
     <div class="card-body">
 
-        <!-- Weak words -->
-        <div class="mb-4">
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="badge" style="background:#fff1ee; color:var(--vermillion);">⚠ Требуют внимания</span>
-                <span class="text-muted" style="font-size:0.78rem;">менее 50% правильных ответов</span>
+        <!-- ── Слабые слова ─── -->
+        {% if weak_words %}
+        <div class="attention-strip" onclick="toggleWords('weak')" role="button">
+            <div class="attention-strip-left">
+                <div class="attention-strip-count">{{ weak_words|length }}</div>
+                <div class="attention-strip-text">
+                    <strong>⚠ Требуют внимания</strong>
+                    <span>менее 50% правильных ответов · нажмите, чтобы развернуть</span>
+                </div>
             </div>
+            <svg id="chevron-weak" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--vermillion)" stroke-width="2" style="flex-shrink:0; transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
 
-            {% if weak_words %}
+        <div class="words-expand" id="words-weak">
             <div class="table-responsive rounded-xl" style="border:1px solid var(--paper-border);">
                 <table class="table mb-0">
                     <thead>
@@ -43,27 +522,21 @@
                             <th>Иероглиф</th>
                             <th class="d-none d-sm-table-cell">Пиньинь</th>
                             <th>Перевод</th>
-                            <th style="min-width:130px;">Точность</th>
+                            <th style="min-width:120px;">Точность</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for word in weak_words %}
                         <tr>
-                            <td>
-                                <span style="font-family:'Noto Serif SC',serif; font-size:1.3rem; color:var(--ink);">
-                                    {{ word.character }}
-                                </span>
-                            </td>
+                            <td><span style="font-family:'Noto Serif SC',serif; font-size:1.3rem; color:var(--ink);">{{ word.character }}</span></td>
                             <td class="text-muted d-none d-sm-table-cell">{{ word.pinyin }}</td>
                             <td style="font-size:0.85rem;">{{ word.meaning }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height:6px; min-width:50px;">
+                                    <div class="progress flex-grow-1" style="height:5px; min-width:50px;">
                                         <div class="progress-bar bg-danger" style="width:{{ word.percentage }}%"></div>
                                     </div>
-                                    <span style="font-size:0.78rem; font-weight:600; color:var(--vermillion); white-space:nowrap;">
-                                        {{ word.percentage }}%
-                                    </span>
+                                    <span style="font-size:0.75rem; font-weight:600; color:var(--vermillion);">{{ word.percentage }}%</span>
                                 </div>
                             </td>
                         </tr>
@@ -71,24 +544,33 @@
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="alert alert-success mb-0">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                Нет слабых слов — отличный результат!
+        </div>
+        {% else %}
+        <div class="attention-strip" style="cursor:default;">
+            <div class="attention-strip-left">
+                <div style="font-size:1.4rem;">✅</div>
+                <div class="attention-strip-text">
+                    <strong>Нет слабых слов</strong>
+                    <span>Отличный результат!</span>
+                </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- ── Сильные слова ─── -->
+        {% if strong_words %}
+        <div class="mastered-strip" onclick="toggleWords('strong')" role="button">
+            <div class="attention-strip-left">
+                <div class="mastered-strip-count">{{ strong_words|length }}</div>
+                <div class="mastered-strip-text">
+                    <strong>✓ Хорошо освоены</strong>
+                    <span>80% и выше · нажмите, чтобы развернуть</span>
+                </div>
+            </div>
+            <svg id="chevron-strong" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e5738" stroke-width="2" style="flex-shrink:0; transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
 
-        <hr style="border-color: var(--paper-border);">
-
-        <!-- Strong words -->
-        <div>
-            <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="badge" style="background:#f0fdf4; color:#14532d;">✓ Хорошо освоены</span>
-                <span class="text-muted" style="font-size:0.78rem;">80% и выше</span>
-            </div>
-
-            {% if strong_words %}
+        <div class="words-expand" id="words-strong">
             <div class="table-responsive rounded-xl" style="border:1px solid var(--paper-border);">
                 <table class="table mb-0">
                     <thead>
@@ -96,27 +578,21 @@
                             <th>Иероглиф</th>
                             <th class="d-none d-sm-table-cell">Пиньинь</th>
                             <th>Перевод</th>
-                            <th style="min-width:130px;">Точность</th>
+                            <th style="min-width:120px;">Точность</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for word in strong_words %}
                         <tr>
-                            <td>
-                                <span style="font-family:'Noto Serif SC',serif; font-size:1.3rem; color:var(--ink);">
-                                    {{ word.character }}
-                                </span>
-                            </td>
+                            <td><span style="font-family:'Noto Serif SC',serif; font-size:1.3rem; color:var(--ink);">{{ word.character }}</span></td>
                             <td class="text-muted d-none d-sm-table-cell">{{ word.pinyin }}</td>
                             <td style="font-size:0.85rem;">{{ word.meaning }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="progress flex-grow-1" style="height:6px; min-width:50px;">
+                                    <div class="progress flex-grow-1" style="height:5px; min-width:50px;">
                                         <div class="progress-bar" style="width:{{ word.percentage }}%; background:#1e5738;"></div>
                                     </div>
-                                    <span style="font-size:0.78rem; font-weight:600; color:#1e5738; white-space:nowrap;">
-                                        {{ word.percentage }}%
-                                    </span>
+                                    <span style="font-size:0.75rem; font-weight:600; color:#1e5738;">{{ word.percentage }}%</span>
                                 </div>
                             </td>
                         </tr>
@@ -124,34 +600,30 @@
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="alert alert-info mb-0">
-                Пройдите больше тестов, чтобы увидеть хорошо усвоенные слова.
+        </div>
+        {% else %}
+        <div class="mastered-strip" style="cursor:default; margin-bottom:0;">
+            <div class="attention-strip-left">
+                <div style="font-size:1.4rem;">📚</div>
+                <div class="mastered-strip-text">
+                    <strong>Пройдите больше тестов</strong>
+                    <span>чтобы увидеть хорошо усвоенные слова</span>
+                </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
 
-        <div class="mt-4">
-            <a href="{% url 'stats' %}" class="btn btn-primary">
-                Полная статистика
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ms-1"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
-        </div>
     </div>
 </div>
 
-<!-- ── MY CARDS ─────────────────────────────────────────────── -->
+<!-- ── MY CARDS ─────────────────────────────────────────────────────── -->
 <div class="card mb-4">
     <div class="card-header">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h5 class="mb-0" style="font-size:0.9rem; font-weight:600;">Мои карточки</h5>
+            <h5 class="mb-0" style="font-size:0.875rem; font-weight:600;">Мои карточки</h5>
             <div class="d-flex gap-2">
-                <a href="{% url 'card_create' %}" class="btn btn-secondary" style="font-size:0.8rem; padding:6px 12px;">
-                    + Создать
-                </a>
-                <a href="{% url 'collections' %}" class="btn btn-secondary" style="font-size:0.8rem; padding:6px 12px;">
-                    Подборки
-                </a>
+                <a href="{% url 'card_create' %}" class="btn btn-secondary" style="font-size:0.78rem; padding:5px 12px;">+ Создать</a>
+                <a href="{% url 'collections' %}" class="btn btn-secondary" style="font-size:0.78rem; padding:5px 12px;">Подборки</a>
             </div>
         </div>
     </div>
@@ -160,51 +632,33 @@
         <div class="row g-3">
             {% for card in cards %}
             <div class="col-12 col-sm-6 col-md-4">
-                <div style="background:var(--surface-raised); border:1px solid var(--paper-border); border-radius:var(--radius-md); padding:16px; height:100%; transition:var(--transition); position:relative;"
-                     onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)';"
-                     onmouseout="this.style.boxShadow=''; this.style.transform='';">
-            
-                    <!-- Кнопка удаления -->
+                <div class="card-mini">
                     <form method="post" action="{% url 'card_delete' card.id %}"
-                          style="position:absolute; top:12px; right:12px;"
+                          style="position:absolute; top:10px; right:10px;"
                           onsubmit="return confirm('Удалить «{{ card.character }}»?')">
                         {% csrf_token %}
-                        <button type="submit" title="Удалить карточку"
-                                style="background:none; border:none; cursor:pointer; padding:4px;
-                                       color:var(--text-muted); transition:color 0.2s;"
+                        <button type="submit" title="Удалить"
+                                style="background:none; border:none; cursor:pointer; padding:3px; color:var(--text-muted);"
                                 onmouseover="this.style.color='var(--vermillion)'"
                                 onmouseout="this.style.color='var(--text-muted)'">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                                 stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6l-1 14H6L5 6"/>
-                                <path d="M10 11v6M14 11v6"/>
-                                <path d="M9 6V4h6v2"/>
-                            </svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>
                     </form>
-            
-                    <div class="d-flex align-items-start justify-content-between mb-2" style="padding-right:24px;">
-                        <span style="font-family:'Noto Serif SC',serif; font-size:2rem; color:var(--ink); line-height:1;">
-                            {{ card.character }}
-                        </span>
+
+                    <div class="d-flex align-items-start justify-content-between mb-1" style="padding-right:20px;">
+                        <span style="font-family:'Noto Serif SC',serif; font-size:1.8rem; color:var(--ink); line-height:1;">{{ card.character }}</span>
                         <span class="badge bg-secondary">{{ card.category|default:"—" }}</span>
                     </div>
-                    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:6px;">{{ card.pinyin }}</p>
+                    <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:6px;">{{ card.pinyin }}</p>
                     <div>
-                        <span class="collapse" id="meaning-{{ card.id }}"
-                              style="font-size:0.875rem; color:var(--text-primary);">
-                            {{ card.meaning }}
-                        </span>
+                        <span class="collapse" id="meaning-{{ card.id }}" style="font-size:0.85rem; color:var(--text-primary);">{{ card.meaning }}</span>
                         <button class="btn btn-secondary"
-                                style="font-size:0.72rem; padding:3px 8px; margin-top:4px;"
+                                style="font-size:0.7rem; padding:2px 8px; margin-top:3px;"
                                 data-bs-toggle="collapse" data-bs-target="#meaning-{{ card.id }}">
                             Перевод
                         </button>
                     </div>
-                    <p style="font-size:0.72rem; color:var(--text-muted); margin-top:8px; margin-bottom:0;">
-                        {{ card.created_at|date:"d M Y" }}
-                    </p>
+                    <p style="font-size:0.68rem; color:var(--text-muted); margin-top:7px; margin-bottom:0;">{{ card.created_at|date:"d M Y" }}</p>
                 </div>
             </div>
             {% endfor %}
@@ -218,4 +672,80 @@
     </div>
 </div>
 
+<script>
+// ── Тепловая карта ───────────────────────────────────────────────────
+(function() {
+    // Данные активности из Django: словарь {"YYYY-MM-DD": count}
+    // Если view не передаёт activity_data, используем пустой объект
+    const activityData = {{ activity_data|default:"{}"|safe }};
+
+    const grid = document.getElementById('heatmap-grid');
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // 13 недель назад (91 день)
+    const start = new Date(today);
+    start.setDate(start.getDate() - 90);
+    // Сдвигаемся на начало недели (понедельник)
+    const dayOfWeek = (start.getDay() + 6) % 7; // 0=пн
+    start.setDate(start.getDate() - dayOfWeek);
+
+    const fmt = d => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${day}`;
+    };
+
+    // Находим максимум для нормализации
+    const maxVal = Math.max(1, ...Object.values(activityData));
+
+    let cursor = new Date(start);
+    while (cursor <= today) {
+        const col = document.createElement('div');
+        col.className = 'heatmap-week';
+
+        for (let d = 0; d < 7; d++) {
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+
+            const key = fmt(cursor);
+            const count = activityData[key] || 0;
+
+            if (count > 0) {
+                const level = count >= maxVal * 0.75 ? 4
+                            : count >= maxVal * 0.5  ? 3
+                            : count >= maxVal * 0.25 ? 2 : 1;
+                cell.setAttribute('data-level', level);
+            }
+
+            // Tooltip
+            const dayNames = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+            const label = count > 0
+                ? `${key}: ${count} ответов`
+                : `${key}: —`;
+            cell.title = label;
+
+            // Клетки в будущем чуть прозрачнее
+            if (cursor > today) cell.style.opacity = '0.3';
+
+            col.appendChild(cell);
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        grid.appendChild(col);
+    }
+})();
+
+// ── Разворачивание таблиц слов ───────────────────────────────────────
+function toggleWords(type) {
+    const panel   = document.getElementById('words-' + type);
+    const chevron = document.getElementById('chevron-' + type);
+    if (!panel) return;
+
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+</script>
 {% endblock %}
