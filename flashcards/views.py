@@ -64,7 +64,7 @@ def register(request):
 @login_required
 def home(request):
     cards = Card.objects.filter(user=request.user)
-    
+
     stats = {'HSK1': {'correct': 0, 'total': 0, 'percentage': 0.0},
              'HSK2': {'correct': 0, 'total': 0, 'percentage': 0.0},
              'HSK3': {'correct': 0, 'total': 0, 'percentage': 0.0}}
@@ -72,23 +72,11 @@ def home(request):
     strong_words = []
 
     for category in stats.keys():
-        completed_sessions = GameSession.objects.filter(
-            user=request.user, 
-            category=category,
-            total_answers=len(HSK_CHARACTERS[category])
-        ).order_by('-percentage')
-        
-        # Находим сессию с лучшим процентом
-        if completed_sessions.exists():
-            stats[category]['best_percentage'] = completed_sessions.first().percentage
-            
         sessions = GameSession.objects.filter(user=request.user, category=category)
-        print(f"Sessions for {category}: {sessions.count()}")
         for session in sessions:
             stats[category]['correct'] += session.correct_answers
             stats[category]['total'] += session.total_answers
             answer_history = session.answer_history if session.answer_history is not None else {}
-            print(f"Answer history for session {session.id}: {answer_history}")
             for character, history in answer_history.items():
                 correct = history.get('correct', 0)
                 total = history.get('total', 0)
@@ -105,20 +93,86 @@ def home(request):
                     elif percentage >= 80:
                         strong_words.append(word_data)
         if stats[category]['total'] > 0:
-            stats[category]['percentage'] = round((stats[category]['correct'] / stats[category]['total']) * 100, 1)
-    
-    weak_words = sorted(weak_words, key=lambda x: x['percentage'])[:5]
+            stats[category]['percentage'] = round(
+                (stats[category]['correct'] / stats[category]['total']) * 100, 1
+            )
+
+    weak_words  = sorted(weak_words,  key=lambda x: x['percentage'])[:5]
     strong_words = sorted(strong_words, key=lambda x: x['percentage'], reverse=True)[:5]
-    
-    print(f"Stats: {stats}")
-    print(f"Weak words: {weak_words}")
-    print(f"Strong words: {strong_words}")
-    
+
+
+    client = MongoClient(MONGO_URI)
+    db     = client['chinese_srs']
+    now    = datetime.datetime.now()
+
+    sm2_records = list(db['card_study_stats'].find({'user_id': request.user.id}))
+
+    sm2_due_count = sum(
+        1 for r in sm2_records
+        if r.get('next_review', now) <= now
+    )
+
+    total_all = sum(HSK_WORDS_COUNT.values())
+    sm2_new_count = max(0, total_all - len(sm2_records))
+
+    sm2_total_studied  = len(sm2_records)
+    sm2_total_mastered = sum(
+        1 for r in sm2_records
+        if r.get('n', 0) >= 2 and r.get('interval', 0) >= 7
+    )
+
+    session_cards  = sm2_due_count + min(sm2_new_count, 5)
+    today_minutes  = max(1, round(session_cards * 0.5))
+
+    week_ago = now - datetime.timedelta(days=7)
+    week_records = list(db['card_study_stats'].find({
+        'user_id':    request.user.id,
+        'updated_at': {'$gte': week_ago}
+    }))
+    week_correct = sum(r.get('correct_count', 0) for r in week_records)
+    week_total   = sum(r.get('total_count',   0) for r in week_records)
+    week_accuracy = round(week_correct / week_total * 100) if week_total > 0 else 0
+
+    activity_dates = set()
+    for r in sm2_records:
+        upd = r.get('updated_at')
+        if upd:
+            activity_dates.add(upd.date())
+
+    streak_days = 0
+    check_date  = now.date()
+    while check_date in activity_dates:
+        streak_days += 1
+        check_date  -= datetime.timedelta(days=1)
+
+
+    from collections import defaultdict
+    activity_map = defaultdict(int)
+    for r in sm2_records:
+        upd = r.get('updated_at')
+        if upd:
+            day_key = upd.strftime('%Y-%m-%d')
+            activity_map[day_key] += r.get('total_count', 1)
+
+    for session in GameSession.objects.filter(user=request.user):
+        day_key = session.created_at.strftime('%Y-%m-%d')
+        activity_map[day_key] += session.total_answers or 0
+
+    client.close()
+
     return render(request, 'home.html', {
-        'cards': cards,
-        'stats': stats,
-        'weak_words': weak_words,
-        'strong_words': strong_words
+        'cards':       cards,
+        'stats':       stats,
+        'weak_words':  weak_words,
+        'strong_words': strong_words,
+        'sm2_due_count':      sm2_due_count,
+        'sm2_new_count':      sm2_new_count,
+        'sm2_total_studied':  sm2_total_studied,
+        'sm2_total_mastered': sm2_total_mastered,
+        'today_minutes':      today_minutes,
+        'week_accuracy':      week_accuracy,
+        'streak_days':        streak_days,
+        'activity_data':      json.dumps(dict(activity_map)),
     })
 
 # @login_required
