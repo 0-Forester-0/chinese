@@ -26,6 +26,6 @@ urlpatterns = [
     # ── Сессии изучения (SM-2) ──────────────────────────────────────────────
     path('study/', views.study_select, name='study_select'),
     path('study/due-count/', views.study_due_count, name='study_due_count'),
-    path('study/<str:category>/', views.study_session_start, name='study_session_start'),
     path('study/answer/', views.study_answer, name='study_answer'),
+    path('study/<str:category>/', views.study_session_start, name='study_session_start'),
 ]
