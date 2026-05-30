@@ -111,8 +111,9 @@
         letter-spacing: 0.04em;
     }
 
-    .badge-new { background: #eff8ff; color: #1e40af; }
+    .badge-new    { background: #eff8ff; color: #1e40af; }
     .badge-review { background: var(--paper-warm); color: var(--text-secondary); }
+    .badge-quiz   { background: #f5f0ff; color: #5b21b6; }
 
     .feedback-msg {
         min-height: 28px;
@@ -135,6 +136,22 @@
         display: block;
     }
 
+    /* Phase banner */
+    .phase-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: var(--radius-md);
+        font-size: 0.82rem;
+        font-weight: 500;
+        margin-bottom: 16px;
+    }
+
+    .phase-banner-learn  { background: #eff8ff; border: 1px solid #bae6fd; color: #0c4a6e; }
+    .phase-banner-review { background: var(--paper-warm); border: 1px solid var(--paper-border); color: var(--text-secondary); }
+    .phase-banner-quiz   { background: #f5f0ff; border: 1px solid #ddd6fe; color: #5b21b6; }
+
     /* Divider */
     .answer-divider {
         border: none;
@@ -147,7 +164,7 @@
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <div>
         <h1 class="page-title">{{ category }}</h1>
-        <p class="page-subtitle">Интервальное повторение — SM-2</p>
+        <p class="page-subtitle" id="phase-subtitle">Интервальное повторение — SM-2</p>
     </div>
     <button id="btn-end" class="btn btn-outline-danger">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
@@ -175,13 +192,15 @@
     </div>
 </div>
 
+<!-- ── PHASE BANNER ────────────────────────────────────────────── -->
+<div id="phase-banner" class="phase-banner phase-banner-learn" style="display:none;"></div>
+
 <!-- ── FLASHCARD ────────────────────────────────────────────────── -->
 <div id="study-area">
     <div class="flashcard">
         <div class="p-4 d-flex flex-column align-items-center justify-content-center h-100" style="min-height:340px;">
 
-            <!-- Question state -->
-            <!-- Для НОВОЙ карточки — показываем сразу всё -->
+            <!-- ── Фаза LEARN: показываем новое слово целиком ── -->
             <div id="state-learn" style="display:none; width:100%; text-align:center;">
                 <div class="mb-2">
                     <span class="card-badge badge-new">✨ Новое слово — изучите его</span>
@@ -203,6 +222,8 @@
                     или нажмите <kbd>Пробел</kbd>
                 </p>
             </div>
+
+            <!-- ── Вопрос (используется в фазах review и quiz) ── -->
             <div id="state-question" class="w-100 text-center">
                 <div class="mb-3">
                     <span id="card-badge" class="card-badge badge-new">✨ Новое слово</span>
@@ -219,7 +240,7 @@
                 </p>
             </div>
 
-            <!-- Answer state -->
+            <!-- ── Ответ (используется в фазах review и quiz) ── -->
             <div id="state-answer" style="display:none; width:100%;" class="text-center">
                 <div class="flashcard-character" id="ans-character" style="font-size:4rem;"></div>
                 <p class="pinyin-display" id="ans-pinyin"></p>
@@ -296,109 +317,188 @@
     const allCards  = {{ cards_json|safe }};
     const category  = "{{ category }}";
     const CSRF      = "{{ csrf_token }}";
-    
+
     const newCards    = allCards.filter(c => c.is_new);
     const reviewCards = allCards.filter(c => !c.is_new);
-    
+
     function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+            [a[i], a[j]] = [a[j], a[i]];
         }
-        return arr;
+        return a;
     }
-    
-    // В фазе quiz: перемешанные новые + повторяемые
-    const quizCards  = shuffle([...newCards]).concat(reviewCards);
-    
-    let phase        = newCards.length > 0 ? 'learn' : 'quiz';
+
+    const shuffledReview = shuffle(reviewCards);
+    const shuffledNew    = shuffle(newCards);
+
+    /*
+     * Порядок фаз:
+     *  1. 'learn'  — показываем каждое новое слово с переводом (без оценки)
+     *  2. 'review' — проверка старых слов (те, что уже изучались)
+     *  3. 'quiz'   — проверка новых слов (те, что только что изучили)
+     *
+     * Если какой-то пул пустой, фаза пропускается.
+     */
+    function getInitialPhase() {
+        if (newCards.length > 0)    return 'learn';
+        if (reviewCards.length > 0) return 'review';
+        return 'done';
+    }
+
+    let phase        = getInitialPhase();
     let learnIdx     = 0;
+    let reviewIdx    = 0;
     let quizIdx      = 0;
-    let correctCount = 0;
-    
-    const stateLearn = document.getElementById('state-learn');
-    const stateQ     = document.getElementById('state-question');
-    const stateA     = document.getElementById('state-answer');
-    const stateDone  = document.getElementById('state-done');
-    const studyArea  = document.getElementById('study-area');
-    const pBar       = document.getElementById('progress-bar');
-    
-    // ── Прогресс ──────────────────────────────────────────────────────────
+    let correctCount = 0; // сквозной счётчик правильных ответов
+
+    // DOM-элементы
+    const stateLearn   = document.getElementById('state-learn');
+    const stateQ       = document.getElementById('state-question');
+    const stateA       = document.getElementById('state-answer');
+    const stateDone    = document.getElementById('state-done');
+    const studyArea    = document.getElementById('study-area');
+    const pBar         = document.getElementById('progress-bar');
+    const phaseBanner  = document.getElementById('phase-banner');
+    const phaseSubtitle = document.getElementById('phase-subtitle');
+
+    // ── Обновление прогресс-бара ─────────────────────────────────────────
     function updateProgress() {
+        let current, total;
+
         if (phase === 'learn') {
-            pBar.style.width = Math.round((learnIdx / newCards.length) * 100) + '%';
-            document.getElementById('current-num').textContent = learnIdx + 1;
-            document.getElementById('total-num').textContent   = newCards.length;
-        } else {
-            pBar.style.width = Math.round((quizIdx / quizCards.length) * 100) + '%';
-            document.getElementById('current-num').textContent = quizIdx + 1;
-            document.getElementById('total-num').textContent   = quizCards.length;
+            current = learnIdx + 1;
+            total   = newCards.length;
+        } else if (phase === 'review') {
+            current = reviewIdx + 1;
+            total   = reviewCards.length;
+        } else { // quiz
+            current = quizIdx + 1;
+            total   = newCards.length;
         }
+
+        const pct = Math.round(((current - 1) / Math.max(total, 1)) * 100);
+        pBar.style.width = pct + '%';
+        document.getElementById('current-num').textContent = current;
+        document.getElementById('total-num').textContent   = total;
         document.getElementById('correct-count').textContent = correctCount;
     }
-    
-    // ── Фаза LEARN ────────────────────────────────────────────────────────
+
+    // ── Баннер текущей фазы ──────────────────────────────────────────────
+    const PHASE_META = {
+        learn:  { cls: 'phase-banner-learn',  icon: '📖', text: 'Фаза 1 — Изучение новых слов',           sub: 'Запомните новые иероглифы' },
+        review: { cls: 'phase-banner-review', icon: '🔁', text: 'Фаза 2 — Повторение знакомых слов',     sub: 'Повторение знакомых слов' },
+        quiz:   { cls: 'phase-banner-quiz',   icon: '✅', text: 'Фаза 3 — Проверка новых слов',           sub: 'Проверяем, что запомнили' },
+    };
+
+    function showPhaseBanner(p) {
+        const m = PHASE_META[p];
+        if (!m) return;
+        phaseBanner.className = `phase-banner ${m.cls}`;
+        phaseBanner.innerHTML = `<span style="font-size:1rem;">${m.icon}</span> <strong>${m.text}</strong>`;
+        phaseBanner.style.display = '';
+        if (phaseSubtitle) phaseSubtitle.textContent = m.sub;
+    }
+
+    // ── Фаза LEARN ───────────────────────────────────────────────────────
     function showLearnCard() {
+        showPhaseBanner('learn');
         const card = newCards[learnIdx];
         document.getElementById('learn-character').textContent = card.character;
         document.getElementById('learn-pinyin').textContent    = card.pinyin;
         document.getElementById('learn-meaning').textContent   = card.meaning;
         document.getElementById('learn-counter').textContent   =
             `Слово ${learnIdx + 1} из ${newCards.length}`;
-    
+
         stateLearn.style.display = '';
         stateQ.style.display     = 'none';
         stateA.style.display     = 'none';
         updateProgress();
     }
-    
-    document.getElementById('btn-learned').addEventListener('click', () => {
+
+    function advanceLearn() {
         learnIdx++;
         if (learnIdx < newCards.length) {
             showLearnCard();
         } else {
-            // Все новые показаны → переходим к проверке
-            phase        = 'quiz';
-            quizIdx      = 0;
-            correctCount = 0;
-            showQuizCard();
+            // Все новые слова показаны — переходим к повторению старых (если есть)
+            if (reviewCards.length > 0) {
+                phase     = 'review';
+                reviewIdx = 0;
+                showReviewCard();
+            } else {
+                // Нет старых слов — сразу к проверке новых
+                phase    = 'quiz';
+                quizIdx  = 0;
+                showQuizCard();
+            }
         }
-    });
-    
-    // ── Фаза QUIZ ─────────────────────────────────────────────────────────
-    function showQuizCard() {
-        const card  = quizCards[quizIdx];
+    }
+
+    document.getElementById('btn-learned').addEventListener('click', advanceLearn);
+
+    // ── Фаза REVIEW (повторение старых слов) ────────────────────────────
+    function showReviewCard() {
+        showPhaseBanner('review');
+        const card  = shuffledReview[reviewIdx];
         const badge = document.getElementById('card-badge');
-        const isNew = newCards.some(c => c.character === card.character);
-    
-        badge.className  = isNew ? 'card-badge badge-new' : 'card-badge badge-review';
-        badge.textContent = isNew ? '✨ Новое слово' : '🔁 Повторение';
-    
+        badge.className   = 'card-badge badge-review';
+        badge.textContent = '🔁 Повторение';
+
         document.getElementById('card-character').textContent = card.character;
         document.getElementById('ans-character').textContent  = card.character;
         document.getElementById('ans-pinyin').textContent     = card.pinyin;
         document.getElementById('ans-meaning').textContent    = card.meaning;
-        document.getElementById('answer-feedback').textContent = '';
-        document.getElementById('answer-feedback').style.background = '';
-        document.getElementById('answer-feedback').style.color = '';
-    
+        clearFeedback();
         document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
-    
+
         stateLearn.style.display = 'none';
         stateQ.style.display     = '';
         stateA.style.display     = 'none';
         updateProgress();
     }
-    
+
+    // ── Фаза QUIZ (проверка новых слов) ─────────────────────────────────
+    function showQuizCard() {
+        showPhaseBanner('quiz');
+        const card  = shuffledNew[quizIdx];
+        const badge = document.getElementById('card-badge');
+        badge.className   = 'card-badge badge-quiz';
+        badge.textContent = '✅ Проверка нового слова';
+
+        document.getElementById('card-character').textContent = card.character;
+        document.getElementById('ans-character').textContent  = card.character;
+        document.getElementById('ans-pinyin').textContent     = card.pinyin;
+        document.getElementById('ans-meaning').textContent    = card.meaning;
+        clearFeedback();
+        document.querySelectorAll('.rating-btn').forEach(b => b.disabled = false);
+
+        stateLearn.style.display = 'none';
+        stateQ.style.display     = '';
+        stateA.style.display     = 'none';
+        updateProgress();
+    }
+
+    function clearFeedback() {
+        const fb = document.getElementById('answer-feedback');
+        fb.textContent        = '';
+        fb.style.background   = '';
+        fb.style.color        = '';
+    }
+
+    // ── Показ ответа ─────────────────────────────────────────────────────
     function revealAnswer() {
         stateQ.style.display = 'none';
         stateA.style.display = '';
     }
-    
+
+    // ── Приём оценки и переход к следующей карточке ──────────────────────
     async function submitRating(quality) {
-        const card = quizCards[quizIdx];
+        const card = (phase === 'review') ? shuffledReview[reviewIdx] : shuffledNew[quizIdx];
+
         if (quality >= 3) correctCount++;
-    
+
         const fb = document.getElementById('answer-feedback');
         if (quality === 5) {
             fb.style.background = '#f0fdf4'; fb.style.color = '#14532d';
@@ -410,10 +510,10 @@
             fb.style.background = '#fff1ee'; fb.style.color = '#7f1d1d';
             fb.textContent = '✖ Запомним — карточка вернётся завтра.';
         }
-    
+
         document.querySelectorAll('.rating-btn').forEach(b => b.disabled = true);
         document.getElementById('correct-count').textContent = correctCount;
-    
+
         try {
             await fetch('/study/answer/', {
                 method:  'POST',
@@ -421,29 +521,54 @@
                 body:    JSON.stringify({ character: card.character, category, quality })
             });
         } catch(e) { console.error(e); }
-    
+
         setTimeout(() => {
-            quizIdx++;
-            if (quizIdx >= quizCards.length) showDone();
-            else showQuizCard();
+            if (phase === 'review') {
+                reviewIdx++;
+                if (reviewIdx >= reviewCards.length) {
+                    // Повторение завершено — переходим к проверке новых слов (если есть)
+                    if (newCards.length > 0) {
+                        phase   = 'quiz';
+                        quizIdx = 0;
+                        showQuizCard();
+                    } else {
+                        showDone();
+                    }
+                } else {
+                    showReviewCard();
+                }
+            } else { // phase === 'quiz'
+                quizIdx++;
+                if (quizIdx >= newCards.length) {
+                    showDone();
+                } else {
+                    showQuizCard();
+                }
+            }
         }, 900);
     }
-    
+
+    // ── Экран завершения ─────────────────────────────────────────────────
     function showDone() {
-        studyArea.style.display = 'none';
-        stateDone.style.display = '';
-        const total = quizCards.length;
-        document.getElementById('done-total').textContent = total;
+        studyArea.style.display  = 'none';
+        phaseBanner.style.display = 'none';
+        stateDone.style.display  = '';
+
+        const totalQuiz = reviewCards.length + newCards.length;
+        document.getElementById('done-total').textContent = totalQuiz;
         document.getElementById('done-pct').textContent   =
-            total > 0 ? Math.round((correctCount / total) * 100) + '%' : '0%';
+            totalQuiz > 0 ? Math.round((correctCount / totalQuiz) * 100) + '%' : '0%';
+
         pBar.style.width = '100%';
-        document.getElementById('current-num').textContent = total;
+        document.getElementById('current-num').textContent = totalQuiz;
+        document.getElementById('total-num').textContent   = totalQuiz;
+        if (phaseSubtitle) phaseSubtitle.textContent = 'Сессия завершена';
     }
-    
+
     // ── Клавиатура ────────────────────────────────────────────────────────
     document.addEventListener('keydown', e => {
         if (phase === 'learn') {
-            if (e.code === 'Space') { e.preventDefault(); document.getElementById('btn-learned').click(); }
+            if (e.code === 'Space') { e.preventDefault(); advanceLearn(); }
             return;
         }
         if (e.code === 'Space' && stateQ.style.display !== 'none') {
@@ -455,7 +580,7 @@
             if (e.key === '3') submitRating(5);
         }
     });
-    
+
     document.getElementById('btn-show').addEventListener('click', revealAnswer);
     document.querySelectorAll('.rating-btn').forEach(btn => {
         btn.addEventListener('click', () => submitRating(parseInt(btn.dataset.quality)));
@@ -463,7 +588,7 @@
     document.getElementById('btn-end').addEventListener('click', () => {
         if (confirm('Завершить сессию досрочно?')) showDone();
     });
-    
+
     // ── Старт ─────────────────────────────────────────────────────────────
     if (allCards.length === 0) {
         studyArea.innerHTML = `<div class="card text-center p-5">
@@ -472,8 +597,10 @@
         </div>`;
     } else if (phase === 'learn') {
         showLearnCard();
+    } else if (phase === 'review') {
+        showReviewCard();
     } else {
-        showQuizCard();
+        showDone();
     }
 </script>
 {% endblock %}
