@@ -521,9 +521,12 @@
         if (quality === 5) {
             fb.style.background = '#f0fdf4'; fb.style.color = '#14532d';
             fb.textContent = '✔ Отлично! Следующий показ через несколько дней.';
+        } else if (quality === 4) {
+            fb.style.background = '#f0fdf4'; fb.style.color = '#14532d';
+            fb.textContent = '✔ Хорошо! Продолжаем в том же темпе.';
         } else if (quality === 3) {
             fb.style.background = '#fffbeb'; fb.style.color = '#78350f';
-            fb.textContent = '⚡ Неплохо. Повторим скоро.';
+            fb.textContent = '⚡ Неплохо, но стоит повторить скоро.';
         } else {
             fb.style.background = '#fff1ee'; fb.style.color = '#7f1d1d';
             fb.textContent = '✖ Запомним — карточка вернётся завтра.';
