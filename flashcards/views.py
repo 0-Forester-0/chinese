@@ -717,7 +717,12 @@ MONGO_URI = 'mongodb+srv://forester:FOR010604est@srs.u9xgrvs.mongodb.net/?retryW
 def _sm2_update(stats, quality):
     """
     Обновляет параметры карточки по алгоритму SM-2.
-    quality: 0 — не знаю, 3 — с трудом, 5 — легко
+    quality: 0 — полное незнание
+             1 — неверный ответ, верный показался знакомым
+             2 — неверный ответ, верный был простым
+             3 — верный ответ со значительным усилием
+             4 — верный ответ после небольшой паузы
+             5 — абсолютно верный ответ
     """
     ef       = stats.get('ef', 2.5)
     n        = stats.get('n', 0)
@@ -852,7 +857,7 @@ def study_answer(request):
     Тело запроса (JSON):
         character — иероглиф
         category  — HSK1 / HSK2 / HSK3
-        quality   — 0 (не знаю) | 3 (с трудом) | 5 (легко)
+        quality   — 0..2 (сброс) | 3..5 (прогресс)
     """
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
