@@ -9,6 +9,7 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('register/', views.register, name='register'),
     path('', views.home, name='home'),
+    path('change-password/', views.change_password, name='change_password'),
     path('card/create/', views.card_create, name='card_create'),
     path('collections/', views.collections, name='collections'),
     path('collections/create/', views.create_collection, name='create_collection'),
