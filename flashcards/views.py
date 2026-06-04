@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -916,3 +918,44 @@ def study_answer(request):
         'ef':          ef,
         'n':           n,
     })
+
+@login_required
+def change_password(request):
+    """
+    Смена пароля текущего пользователя.
+    GET  — отображает форму.
+    POST — валидирует и сохраняет новый пароль.
+    """
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password', '')
+        new_password     = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+ 
+        # ── Валидация ────────────────────────────────────────────
+        if not request.user.check_password(current_password):
+            messages.error(request, 'Текущий пароль введён неверно.')
+            return render(request, 'change_password.html')
+ 
+        if len(new_password) < 8:
+            messages.error(request, 'Новый пароль должен содержать не менее 8 символов.')
+            return render(request, 'change_password.html')
+ 
+        if new_password == current_password:
+            messages.error(request, 'Новый пароль не должен совпадать с текущим.')
+            return render(request, 'change_password.html')
+ 
+        if new_password != confirm_password:
+            messages.error(request, 'Пароли не совпадают.')
+            return render(request, 'change_password.html')
+ 
+        # ── Сохранение ───────────────────────────────────────────
+        request.user.set_password(new_password)
+        request.user.save()
+ 
+        # Обновляем сессию, чтобы пользователь не разлогинился
+        update_session_auth_hash(request, request.user)
+ 
+        messages.success(request, 'Пароль успешно изменён.')
+        return redirect('change_password')
+ 
+    return render(request, 'change_password.html')
