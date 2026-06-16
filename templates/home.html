@@ -623,7 +623,7 @@
             <h5 class="mb-0" style="font-size:0.875rem; font-weight:600;">Мои карточки</h5>
             <div class="d-flex gap-2">
                 <a href="{% url 'card_create' %}" class="btn btn-secondary" style="font-size:0.78rem; padding:5px 12px;">+ Создать</a>
-                <a href="{% url 'collections' %}" class="btn btn-secondary" style="font-size:0.78rem; padding:5px 12px;">Подборки</a>
+                {% comment %}Кнопка «Подборки» скрыта — функционал не реализован{% endcomment %}
             </div>
         </div>
     </div>
